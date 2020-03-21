@@ -8,6 +8,9 @@
 BBM497 - Introduction to Natural Language Processing Lab.:
 Assignment 1 - Implement Basic NGram Models and Generate Sentences.
 
+### Datasets
+* [Assignment 1 - Facebook Children Stories][ass1]
+
 ### Tech
 
 Following technologies are planned to be used in this assignments:
@@ -27,3 +30,5 @@ Download Jupyter Notebook: [Jupyter Notebook][jupyterDown]
    [pythonDown]: <https://www.python.org/downloads/>
    [jupyterDown]: <https://jupyter.org/install.html>
    [github]: <https://github.com/>
+   
+   [ass1]: <https://venturebeat.com/2016/02/18/facebook-releases-1-6gb-data-set-of-childrens-stories-for-training-its-ai/>
