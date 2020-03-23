@@ -77,14 +77,20 @@ def prob(sentence): # MLE Probability Function
     
     return 1
 
+total_corpus = 0
 def probAllModels(sentence):
     unigramCounts = {}
     bigramCounts = {}
     trigramCounts = {}
     
+    unigramProbs = {}
+    bigramProbs = {}
+    trigramProbs = {}
+    
     if type(sentence) == str:
         sentence = sentence.split()
     
+    print("Probabilities:\n")
     for text in unigram_list:
         for word in sentence:
             if word in text:
@@ -93,11 +99,21 @@ def probAllModels(sentence):
                 else:
                     unigramCounts[word] += 1
            
+    total_corpus = sum(unigramCounts.values())
+    
+    # for k,v in unigramCounts.items():
+    #     with open("unigram.txt", 'a') as out:
+    #         out.write(k + '\t' + str(v)) # Delete whatever you don't want to print into a file
+    #         out.write('\n')
+    #         out.close()
+    
     for k,v in unigramCounts.items():
-        with open("unigram.txt", 'a') as out:
-            out.write(k + '\t' + str(v)) # Delete whatever you don't want to print into a file
-            out.write('\n')
-            out.close()
+        first_word = k
+        first_word_count = unigramCounts[first_word]
+        uni_prob = unigramCounts[first_word] / total_corpus
+        unigramProbs[first_word] = uni_prob
+    
+    print(unigramProbs)
     
     for data in bigram_list:
         for i in range(len(sentence) - 1):
@@ -109,12 +125,21 @@ def probAllModels(sentence):
                 else:
                     bigramCounts[listToString] += 1
     
+    # for k,v in bigramCounts.items():
+    #     with open("bigram.txt", 'a') as out:
+    #         out.write(k + '\t' + str(v)) # Delete whatever you don't want to print into a file
+    #         out.write('\n')
+    #         out.close()
+    
     for k,v in bigramCounts.items():
-        with open("bigram.txt", 'a') as out:
-            out.write(k + '\t' + str(v)) # Delete whatever you don't want to print into a file
-            out.write('\n')
-            out.close()
-            
+        first_word = k.split()
+        first_word = first_word[0]
+        first_word_count = unigramCounts[first_word]
+        bi_probs = bigramCounts[k] / unigramCounts[first_word]
+        bigramProbs[k] = bi_probs
+    
+    print(bigramProbs)
+    
     for data in trigram_list:
         for i in range(len(sentence) - 2):
             temp = (sentence[i], sentence[i+1], sentence[i+2])
@@ -125,16 +150,46 @@ def probAllModels(sentence):
                 else:
                     trigramCounts[listToString] += 1
     
-    for k,v in trigramCounts.items():
-        with open("trigram.txt", 'a') as out:
-            out.write(k + '\t' + str(v)) # Delete whatever you don't want to print into a file
-            out.write('\n')
-            out.close()
-            
-    # print(trigramCounts)
+    # for k,v in trigramCounts.items():
+    #     with open("trigram.txt", 'a') as out:
+    #         out.write(k + '\t' + str(v)) # Delete whatever you don't want to print into a file
+    #         out.write('\n')
+    #         out.close()
     
+    for k,v in trigramCounts.items():
+        first_word = k.split()
+        first_two_word = (first_word[0], first_word[1])
+        listToString = ' '.join([str(elem) for elem in first_two_word]) 
+        
+        first_two_word_count = bigramCounts[listToString]
+        tri_probs = trigramCounts[k] / bigramCounts[listToString]
+        trigramProbs[k] = tri_probs
+    
+    print(trigramProbs)
+    
+    print("\nLogarithms:\n")
+    
+    log_unigram = 0
+    log_bigram = 0
+    log_trigram = 0
+    
+    for k,v in unigramProbs.items():
+        log_unigram += math.log2(v)
+        
+    print(log_unigram)
+    
+    for k,v in bigramProbs.items():
+        log_bigram += math.log2(v)
+        
+    print(log_bigram)
+    
+    for k,v in trigramProbs.items():
+        log_trigram += math.log2(v)
+        
+    print(log_trigram)
+        
 def ppl(sentence): # Perplexity
-        logprobs = [float(sentence.split()[1])]
+        logprobs = [float(sentence[1])]
         logP = sum(logprobs)
         N = len(logprobs)
         HW = (-1/N) * logP
@@ -144,23 +199,10 @@ def ppl(sentence): # Perplexity
 
 dataset_list = dataset("C:/Users/Berat/Documents/GitHub/NLP-Assignments/Assignment1/CBTest/data/cbt_train.txt")
 
-n = 3
-
 unigram_list = Ngram(1)
 bigram_list = Ngram(2)
 trigram_list = Ngram(3)
 
-# unigram_list = []
-# bigram_list = []
-# trigram_list = []
+probAllModels(processData("I will look after you ."))
 
-# if n == 1:
-#     unigram_list = Ngram(1)
-# elif n == 2:
-#     bigram_list = Ngram(2)
-# elif n == 3:
-#     trigram_list = Ngram(3)
-
-# for i in dataset_list:
-#     probAllModels(i)
-
+# ppl(processData("I will look after you ."))

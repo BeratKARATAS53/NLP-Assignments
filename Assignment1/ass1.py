@@ -54,9 +54,7 @@ def Ngram(n): # NGram Models
             ngram = ' '.join(data[number:number + n])
             sentence_ngram.append(ngram)
         ngrams_list.append(sentence_ngram)
-        
-        prob(sentence_ngram)
-        
+    
     return ngrams_list
 
 def prob(sentence): # MLE Probability Function
@@ -74,48 +72,124 @@ def prob(sentence): # MLE Probability Function
     
     print(count_dict)
     
-    total_corpus = sum(count_dict.values())
-    
     prob_dict = {}
     
-    # for word in sentence:   
-    #     for i in range(len(dataset_list) - 1):
-    #         temp = (dataset_list[i], dataset_list[i+1]) # Tuples are easier to reuse than nested lists
-    #         if not word in prob_dict_bigram:
-    #             prob_dict_bigram[word] = 1
-    #         else:
-    #             prob_dict_bigram[word] += 1
-            
-            
+    
     return 1
 
+total_corpus = 0
 def probAllModels(sentence):
     unigramCounts = {}
     bigramCounts = {}
     trigramCounts = {}
     
-    for word in sentence:
-        for text in dataset_list:
-            if not word in unigramCounts:
-                if word == '<s>' or word == '</s>':
-                    unigramCounts[word] = len(dataset_list)
-                else:
+    unigramProbs = {}
+    bigramProbs = {}
+    trigramProbs = {}
+    
+    if type(sentence) == str:
+        sentence = sentence.split()
+    
+    print("Probabilities:\n")
+    for text in unigram_list:
+        for word in sentence:
+            if word in text:
+                if word not in unigramCounts:
                     unigramCounts[word] = text.count(word)
-            else:
-                unigramCounts[word] += 1
-                
-    for word in sentence:   
-        for i in range(len(dataset_list) - 1):
-            temp = (dataset_list[i], dataset_list[i+1]) # Tuples are easier to reuse than nested lists
-            if not word in bigramCounts:
-                bigramCounts[word] = 1
-            else:
-                bigramCounts[word] += 1
+                else:
+                    unigramCounts[word] += 1
+           
+    total_corpus = sum(unigramCounts.values())
     
-    print("Probabilty Sentence:\n", unigramCounts)
+    # for k,v in unigramCounts.items():
+    #     with open("unigram.txt", 'a') as out:
+    #         out.write(k + '\t' + str(v)) # Delete whatever you don't want to print into a file
+    #         out.write('\n')
+    #         out.close()
     
+    for k,v in unigramCounts.items():
+        first_word = k
+        first_word_count = unigramCounts[first_word]
+        uni_prob = unigramCounts[first_word] / total_corpus
+        unigramProbs[first_word] = uni_prob
+    
+    print(unigramProbs)
+    
+    for data in bigram_list:
+        for i in range(len(sentence) - 1):
+            temp = (sentence[i], sentence[i+1])
+            listToString = ' '.join([str(elem) for elem in temp])
+            if listToString in data:
+                if listToString not in bigramCounts:
+                    bigramCounts[listToString] = data.count(listToString)
+                else:
+                    bigramCounts[listToString] += 1
+    
+    # for k,v in bigramCounts.items():
+    #     with open("bigram.txt", 'a') as out:
+    #         out.write(k + '\t' + str(v)) # Delete whatever you don't want to print into a file
+    #         out.write('\n')
+    #         out.close()
+    
+    for k,v in bigramCounts.items():
+        first_word = k.split()
+        first_word = first_word[0]
+        first_word_count = unigramCounts[first_word]
+        bi_probs = bigramCounts[k] / unigramCounts[first_word]
+        bigramProbs[k] = bi_probs
+    
+    print(bigramProbs)
+    
+    for data in trigram_list:
+        for i in range(len(sentence) - 2):
+            temp = (sentence[i], sentence[i+1], sentence[i+2])
+            listToString = ' '.join([str(elem) for elem in temp])
+            if listToString in data:
+                if listToString not in trigramCounts:
+                    trigramCounts[listToString] = data.count(listToString)
+                else:
+                    trigramCounts[listToString] += 1
+    
+    # for k,v in trigramCounts.items():
+    #     with open("trigram.txt", 'a') as out:
+    #         out.write(k + '\t' + str(v)) # Delete whatever you don't want to print into a file
+    #         out.write('\n')
+    #         out.close()
+    
+    for k,v in trigramCounts.items():
+        first_word = k.split()
+        first_two_word = (first_word[0], first_word[1])
+        listToString = ' '.join([str(elem) for elem in first_two_word]) 
+        
+        first_two_word_count = bigramCounts[listToString]
+        tri_probs = trigramCounts[k] / bigramCounts[listToString]
+        trigramProbs[k] = tri_probs
+    
+    print(trigramProbs)
+    
+    print("\nLogarithms:\n")
+    
+    log_unigram = 0
+    log_bigram = 0
+    log_trigram = 0
+    
+    for k,v in unigramProbs.items():
+        log_unigram += math.log2(v)
+        
+    print(log_unigram)
+    
+    for k,v in bigramProbs.items():
+        log_bigram += math.log2(v)
+        
+    print(log_bigram)
+    
+    for k,v in trigramProbs.items():
+        log_trigram += math.log2(v)
+        
+    print(log_trigram)
+        
 def ppl(sentence): # Perplexity
-        logprobs = [float(sentence.split()[1])]
+        logprobs = [float(sentence[1])]
         logP = sum(logprobs)
         N = len(logprobs)
         HW = (-1/N) * logP
@@ -125,22 +199,10 @@ def ppl(sentence): # Perplexity
 
 dataset_list = dataset("C:/Users/Berat/Documents/GitHub/NLP-Assignments/Assignment1/CBTest/data/cbt_train.txt")
 
-unigram = Ngram(1)
+unigram_list = Ngram(1)
+bigram_list = Ngram(2)
+trigram_list = Ngram(3)
 
-# prob(["<s>", "Merhaba", "Dunya", "Dunya", "sana", "diyorum?","</s>"])
-# prob(["<s> Merhaba", "Merhaba Dunya", "Dunya Dunya", "Dunya sana", "sana diyorum?","diyorum? </s>"])
+probAllModels(processData("I will look after you ."))
 
-# bigram = Ngram(2)
-# trigram = Ngram(3)
-
-# print(unigram)
-
-# print(prob(unigram))
-# print(prob(bigram))
-# print(prob(trigram))
-
-
-# for text in data:
-#     text = processData(text)
-#     print(Ngram(text, 1))
-
+# ppl(processData("I will look after you ."))
