@@ -1,0 +1,7 @@
+5 sentences, each sentence max 20 (not include '<s>') word 
+
+1- '<s> i ve gone and i should like to be asleep and had forgotten to wind yarn wash the cups'
+2- '<s> like all kindred spirits just as well as everyone else despaired i never did . </s>'
+3- '<s> not those which hallow your bridal-night </s>'
+4- '<s> i profess not to be an end so why should we wish to see eden . </s>'
+5- '<s> into bowser s little kingdom of iolchos he found himself in a voice from the wall and so tired that'
