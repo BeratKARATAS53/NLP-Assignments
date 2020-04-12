@@ -1,0 +1,634 @@
+\documentclass[11pt,titlepage]{article}
+\usepackage{times,psfig,epsfig}
+\hoffset-1in
+\voffset-1in
+\oddsidemargin2.0cm
+\evensidemargin2cm
+\textheight24cm
+\textwidth7in
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{5pt plus2pt minus1pt}
+\renewcommand{\topfraction}{0.99}
+\renewcommand{\bottomfraction}{0.99} 
+\renewcommand{\textfraction}{0.01}
+\renewcommand{\arraystretch}{1.5}
+
+\def\argmax{\mathop {\rm argmax}}
+
+\fboxsep2mm
+\sloppy
+\topsep0pt
+
+\begin{document}
+\LARGE
+\raggedright
+
+\begin{center}
+{\bf
+{\huge \bf N-gram Language Modeling Tutorial}\\[0.1in]
+Dustin Hillard and Sarah Petersen\\[0.1in]
+Lecture notes courtesy of Prof. Mari Ostendorf\\
+}
+\end{center}
+\vskip 0.1in
+
+Outline: 
+\begin{itemize}
+\item Statistical Language Model (LM) Basics
+\item n-gram models
+\item Class LMs
+\item Cache LMs
+\item Mixtures
+\item Empirical observations (Goodman CSL 2001)
+\item Factored LMs
+\end{itemize}
+
+\centerline{\vrule width3in height1pt}
+\vskip 0.2in
+
+  \centerline{{\bf Part I: Statistical Language Model (LM) Basics}}
+\begin{itemize}
+\item What is a statistical LM and why are they interesting?
+\item Evaluating LMs
+\item History equivalence classes
+\end{itemize}
+
+\vskip 0.2in
+
+{\bf What is a statistical language model?}
+
+A stochastic process model for word sequences.  A mechanism for
+computing the probability of:
+$$p(w_1,\ldots , w_T)$$
+
+\clearpage
+
+{\bf Why are LMs interesting?}
+\begin{itemize}
+\item Important component of a speech recognition system
+\begin{itemize}
+\item Helps discriminate between similar sounding words
+\item Helps reduce search costs
+\end{itemize}
+\item In statistical machine translation, a language model characterizes
+  the target language, captures fluency
+\item For selecting alternatives in summarization, generation
+\item Text classification (style, reading level, language, topic, \ldots)
+\item Language models can be used for more than just words
+\begin{itemize}
+\item letter sequences (language identification)
+\item speech act sequence modeling
+\item case and punctuation restoration 
+\end{itemize}
+\end{itemize}
+
+\clearpage
+
+\centerline{{\huge \bf Evaluating LMs}}
+\vskip 0.2in
+
+Evaluating LMs in the context of an application can be expensive, so 
+LMs are usually evaluated on the own in terms of perplexity::
+$$PP = 2^{\tilde H_r} \quad \mbox{where}\ \quad 
+\tilde H_r = -\frac{1}{T}\log_2 p(w_1,\ldots , w_T)$$
+where $\{ w_1, \ldots , w_T\}$ is held out test  data that provides
+the empirical distribution $q(\cdot)$ in the cross-entropy formula
+$$\tilde H = - \sum_x q(x)\log p(x)$$
+and $p(\cdot)$ is the LM estimated on a training set.
+\vskip 0.1in
+
+Interpretations:
+\begin{itemize}
+\item Entropy rate: lower entropy means that it is easier to predict the
+next symbol and hence easier to rule out alternatives when combined with other models
+$$\mbox{small } \tilde H_r \rightarrow \mbox{ small } PP$$
+\item Average branching factor: When a distribution is uniform for a vocabulary
+of size $V$, then entropy is $\log_2 V$, and perplexity is $V$.  So perplexity
+indicates an effective next-word vocabulary size, or branching factor.
+\item Maximum likelihood criterion:  minimizing $\tilde H_r$ is equivalent to
+maximizing log likelihood, and one commonly used model selection criterion (in
+general, not just for LMs) is maximum likelihood on held out data.
+\item Min K-L distance to the empirical distribution
+\end{itemize}
+
+{\Large Caution: Perplexity is an average per symbol (i.e. per word) figure.  Not all
+contexts have the same branching factor. There are some contexts where it is easier to predict the next word
+than in others.}
+
+
+\clearpage
+
+
+
+\centerline{{\huge \bf History Equivalence Classes}}
+\vskip 0.2in
+
+The probability of a sequence of variables can always (without assumptions)
+be decomposed using the chain rule:
+$$p(w_1, \ldots , w_T) = p(w_1)\prod_{i=2}^T p(w_i|w_1, \ldots , w_{i-1})
+  = p(w_1)\prod_{i=2}^T p(w_i|h_i)$$
+For brevity elsewhere, we will use $h_i = \{ w_1, \ldots , w_{i-1} \}$ to
+denote the history of the $i$-th word $w_i$.
+\vskip 0.1in
+
+It is not practical to use the whole history.  Instead, we use equivalence
+classes,
+$$p(w_1, \ldots , w_T) = p(w_1)\prod_{i=2}^T p(w_i|\Phi(w_1, \ldots , w_{i-1}))$$
+assuming that $p(w|\Phi(h_i))$ is approximately equal for all $h_i$ such that
+$\Phi(h_i) = j$.
+\vskip 0.1in
+
+Examples of equivalence classes and resulting number of distributions:
+\begin{itemize}
+\item $\Phi(w_1, \ldots , w_{i-1}) = \{ w_{i-2}, w_{i-1} \}$ truncation ($V^3$)
+\item $\Phi(w_1, \ldots , w_{i-1}) = \{ w_{i-2}, w_{i-1}, t_i \}$ truncation + topic ($V^3 T$)
+\item $\Phi(w_1, \ldots , w_{i-1}) = \{c_{i-3}, c_{i-2}, c_{i-1}\}$ truncation + word classes ($VC^3$)
+\end{itemize}
+One could use individual word classes (semantic or part-of-speech) or
+phrase-sized classes.
+
+\clearpage
+
+
+\centerline{{\huge \bf Part II: The n-gram language model}}
+\vskip 0.2in
+
+Key issues:
+\begin{itemize}
+\item Tree representation
+\item Estimating n-grams with MLE
+\item Smoothing and back-off
+\item Pruning and variable n-grams
+\end{itemize}
+
+\vskip 0.2in
+
+In an n-gram, we truncate the history to length $n-1$
+$$p(w_i|w_1, \ldots , w_{i-1}) = p(w_i|w_{i-n+1}, \ldots , w_{i-1})$$
+and it is so-named because it characterizes a sequence of n variables.
+\begin{itemize}
+\item unigram: $p(w_i)$  (i.i.d. process)
+\item bigram: $p(w_i|w_{i-1})$ (Markov process)
+\item trigram: $p(w_i|w_{i-2},w_{i-1})$
+\end{itemize}
+
+There are many anecdotal examples to show why n-grams are poor models of language.  From Manning and Schuetze (p. 193):
+\begin{quote}
+Sue swallowed the large green ....
+\end{quote}
+
+\vskip 0.3in
+
+However, n-grams are very powerful models and difficult to beat (at least for
+English), since frequently the short-distance context is most
+important.
+
+Shannon's and Brown et al.'s estimates of the entropy of English demonstrate that n-grams work quite well.
+
+
+\clearpage
+
+You can represent an n-gram using a $V$-ary branching tree structure for vocabulary
+size $V$, as in the tree below for a 4-word vocabulary.
+
+% The main point of the figure is to show that the number of parameters
+% in the model grows exponentially in terms of n-gram order. 
+% Each time you go one step further in the history, e.g., bigram to 
+% trigram, you multiply the number of parameters by the size of the vocabulary.
+% The figure shows a tree with four children at each node. The root is P(w)
+% and its children are P(w|v_a), P(w|v_b), P(w|v_c) and P(w|v_d).
+% The next level children and P(w|v_a,v_a), P(w|v_b,v_a), etc. 
+\vskip -0.2in
+\centerline{\psfig{figure=figs/ngram-tree.pdf,height=6in,angle=-90}}
+\vskip -0.1in
+
+Each node in the tree is associated with a probability distribution for
+the $V$ words in the vocabulary.  The unigram is at the root node; the $V$ different
+bigrams are at the next level; and the trigrams are at the next.  The tree could
+be extended further for higher order n-grams.  The nodes further down the tree
+represent longer-distance histories.
+\vskip 0.1in
+
+This picture should make it clear that there are potentially $V^n$
+parameters in an n-gram for vocabulary size $V$.  For moderate n-grams
+(2-4) and interesting vocabulary sizes (20k-60k), this can get very large.
+For example, a 20k-word vocabulary would require 8 trillion parameters to fully represent a trigram. This poses storage, memory, and estimation problems.
+
+
+\clearpage
+
+
+\centerline{{\huge \bf Estimating n-gram probabilities}}
+\vskip 0.2in
+
+We can estimate n-gram probabilities by counting relative frequency
+on a training corpus.\\
+(This is  maximum likelihood estimation.)
+\begin{eqnarray*}
+\hat p(w_a) & = & \frac{c(w_a)}{N} \\
+\hat p(w_b|w_a) & = & \frac{c(w_a,w_b)}{\sum_{w_b}c(w_a,w_b)} \approx  \frac{c(w_a,w_b)}{c(w_a)}
+\end{eqnarray*}
+where $N$ is the total number of words in the training set and $c(\cdot)$ denotes
+count of the word or word sequence in the training data. 
+{\sl \Large
+\begin{quote}
+(Aside: the approximation is because of edge effects.  We will
+generally not worry about this in writing the equations in the
+future.)
+\end{quote}
+}
+
+\underline{PROBLEM:} what if $c(w_a) = 0$?
+\begin{itemize}
+\item For unigram case, we get a zero probability, which is generally a bad
+idea, since you often don't want to rule things
+out entirely (when you have finite training data).
+\item For the bigram case, we get an undefined probability, which is even
+more problematic.
+\end{itemize}
+This really happens!  
+Human language has ``lopsided sparsity'' -- there's a fairly high
+probability of seeing an event that was not seen in the training corpus, even
+for large corpora.  
+
+\vskip 0.1in
+Example from Manning and Schuetze p.200 (Table 6.3)\\
+{\Large ``Probabilities of each successive word for a clause from 
+\textit{Persuasion}. The probability distribution for the following word is calculated by Maximum Likelihood Estimate n-gram models for various values of n. The predicted likelihood rank of different words is shown in the first column. The actual next word is shown at the top of the table in italics, and in the table in bold.''}
+(Table is split to fit on two pages.)
+
+\begin{table}
+\begin{tabular}{|rllllllllllll|}
+\hline
+\textit{In person} & \textit{she} & & \textit{was} & & \textit{inferior} & & \textit{to} & & \textit{both} & & \textit{sisters} & \\
+\hline
+\textbf{1-gram} & $P(\cdot)$ & & $P(\cdot)$ & & $P(\cdot)$ & & $P(\cdot)$ & & $P(\cdot)$ & & $P(\cdot)$ & \\
+1 & the & 0.034 & the & 0.034 & the & 0.034 & the & 0.034 & the & 0.034 & the & 0.034 \\
+2 & to & 0.32 & to & 0.32 & to & 0.32 & \textbf{to} & \textbf{0.32} & to & 0.32 & to & 0.32 \\
+3 & and & 0.030 & and & 0.030 & and & 0.030 & & & and & 0.030 & and & 0.030 \\
+4 & of & 0.029 & of & 0.029 & of & 0.029 & &  & of & 0.029 & of & 0.029 \\
+... & & & & & & & & & & & & \\
+8 & was & 0.015  & \textbf{was} & \textbf{0.015}  & was & 0.015  & & & was & 0.015  & was & 0.015  \\
+... & & & & & & & & & & & & \\
+13 & \textbf{she} & \textbf{0.011} & & & she & 0.011 & & & she & 0.011 & she & 0.011 \\
+... & & & & & & & & & & & & \\
+254 & & & & & both & 0.0005 & & & \textbf{both} & \textbf{0.0005}  & both & 0.0005 \\
+... & & & & & & & & & & & & \\ 
+435 & & & & & sisters & 0.0003 & & & & & \textbf{sisters} & \textbf{0.0003} \\
+... & & & & & & & & & & & & \\ 
+1701 & & & & & \textbf{inferior} & \textbf{0.00005} & & & & & & \\
+\hline 
+\textbf{2-gram} & \multicolumn{2}{l}{$P(\cdot|person)$} & \multicolumn{2}{l}{$P(\cdot|she)$} & \multicolumn{2}{l}{$P(\cdot|was)$} & \multicolumn{2}{l}{$P(\cdot|inf.)$} & \multicolumn{2}{l}{$P(\cdot|to)$} & \multicolumn{2}{l|}{$P(\cdot|both)$}\\
+1 & and & 0.099 & had & 0.141 & not & 0.065 & \textbf{to} & \textbf{0.212} & be & 0.111 & of & 0.066\\
+2 & who & 0.099 & \textbf{was} & \textbf{0.122} & a & 0.0522 & & & the & 0.057 & to & 0.041\\
+3 & to & 0.076 & & & the & 0.033 & & & her & 0.048 & in & 0.038\\
+4 & in & 0.045 & & & to & 0.0311 & & & have & 0.027 & and & 0.025 \\
+... & & & & & & & & & & & & \\ 
+23 & \textbf{she}  & \textbf{0.009} & & & & & & & Mrs & 0.006 & she & 0.009 \\ 
+... & & & & & & & & & & & & \\ 
+41 & & & & & & & & & what & 0.004 & \textbf{sisters} & \textbf{0.006} \\  
+... & & & & & & & & & & & & \\ 
+293 & & & & & & & & & \textbf{both} & \textbf{0.004} & & \\  
+... & & & & & & & & & & & & \\ 
+$\infty$  & & & & & \textbf{inferior} & \textbf{0}  & & & & & &  \\
+\hline 
+\end{tabular}
+\end{table}
+
+\begin{table}
+\begin{tabular}{|rllllllllllll|}
+\hline
+\textit{In person} & \textit{she} & & \textit{was} & & \textit{inferior} & & \textit{to} & & \textit{both} & & \textit{sisters} & \\
+\hline
+\textbf{3-gram} & \multicolumn{2}{l}{$P(\cdot|In,p)$} & \multicolumn{2}{l}{$P(\cdot|p,she)$} & \multicolumn{2}{l}{$P(\cdot|she,was)$} & \multicolumn{2}{l}{$P(\cdot|was,i)$} & \multicolumn{2}{l}{$P(\cdot|i,to)$} & \multicolumn{2}{l|}{$P(\cdot|to,both)$}\\
+1 & \multicolumn{2}{l}{UNSEEN} & did & 0.5 & not & 0.057 & \multicolumn{2}{l}{UNSEEN} & the & 0.286 & to & 0.222\\
+2 & & & \textbf{was} & \textbf{0.5} & very & 0.038 & & & Maria & 0.143 & Chapter & 0.111\\
+3 & & & & &  in & 0.030 & & &  cherries & 0.143 & Hour & 0.111 \\
+4 & & & & & to & 0.026 & & & her & 0.143 & Twice & 0.111\\
+... & & & & & & & & & & & & \\ 
+$\infty$ & & & & & \textbf{inferior} & \textbf{0} & & & \textbf{both} & \textbf{0} & \textbf{sisters} & \textbf{0} \\
+\hline
+\textbf{4-gram} & \multicolumn{2}{l}{$P(\cdot|u,I,p)$} & \multicolumn{2}{l}{$P(\cdot|I,p,s)$} & \multicolumn{2}{l}{$P(\cdot|p,s,w)$} & \multicolumn{2}{l}{$P(\cdot|s,w,i)$} & \multicolumn{2}{l}{$P(\cdot|w,i,t)$} & \multicolumn{2}{l|}{$P(\cdot|i,t,b)$}\\
+1 & \multicolumn{2}{l}{UNSEEN} & \multicolumn{2}{l}{UNSEEN} & in & 1.0 & \multicolumn{2}{l}{UNSEEN} & \multicolumn{2}{l}{UNSEEN} & \multicolumn{2}{l|}{UNSEEN} \\
+... & & & & & & & & & & & & \\ 
+$\infty$ & & & & & \textbf{inferior} & \textbf{0} & & & & & & \\
+\hline
+\end{tabular}
+\end{table}
+
+
+\clearpage
+
+
+{\bf \underline{SOLUTION:} smoothing}
+
+There are many different alternatives to smoothing, which roughly fall
+into the following categories:
+\begin{itemize}
+\item Add counts to account for unseen events that may occur in the future.
+Important historical example: Laplace estimate 
+$$p(w_a) = \frac{c(w_a) + 1}{N+V}$$
+\item Interpolation: weighted combination of target and lower-order distributions
+$$p(w_i|w_{i-2},w_{i-1}) = \lambda_3 f(w_i|w_{i-2},w_{i-1})
+ + \lambda_2 f(w_i|w_{i-1})  + \lambda_1 f(w_i) + \lambda_0 \frac{1}{V}$$
+where $f(w|\cdot)$ is a relative frequency (ML) estimate and $\sum_i \lambda_i = 1$.
+The weights are typically estimated on a held-out data set.
+\item Backoff: steal from the rich (seen events) and give to the poor (unseen)
+{\Large
+$$p(w_i|w_{i-2},w_{i-1}) = \left\{
+\begin{array}{ll}
+f(w_3|w_1,w_2) & \mbox{if } c(w_1,w_2, w_3)\ge K_2\\
+discount(f(w_3|w_1,w_2)) & \mbox{if } K_1 \ge c(w_1,w_2, w_3) < K_2\\
+distribute(f(w_3|w_2)) & \mbox{if } c(w_1,w_2, w_3)\ < K_1
+\end{array}\right.  $$
+}
+(The no-discount case is not always used.)
+Discounting can take different forms:
+\begin{itemize}
+\item absolute: subtract counts $(r-\delta)/N$
+\item linear: subtract a percentage $(1-\alpha)r/N$
+\end{itemize}
+where $r/N$ is the relative frequency estimate. Distributing spreads the
+stolen mass according to lower order distributions.
+\end{itemize}
+
+Language modeling toolkits usually implement several interpolation and
+backoff options, so you can experiment for yourself. 
+
+\clearpage
+
+A paper by Chen and Goodman (CSL, 1999) looks extensively at different alternatives,
+testing with different amounts of training data and different corpora.  The best
+results under a broad range of conditions are obtained using modified
+Kneser-Ney smoothing, e.g. for trigrams:
+\begin{eqnarray*}
+p_{KN}(w_i|w_{i-2},w_{i-1}) & = & \frac{c(w_{i-2},w_{i-1},w_i) - D(c(w_{i-2},w_{i-1},w_i))}{c(w_{i-2},w_{i-1})} \\
+ & & + \ \gamma(w_{i-2},w_{i-1})p_{KN}(w_i|w_{i-1})
+\end{eqnarray*}
+where $\gamma(w_{i-2},w_{i-1})$ is chosen such that the distributions sum to 1
+and where $D(c(\cdot))$ allows you to have smaller discounts for smaller
+counts.
+
+\vskip 0.2in
+
+{\bf Practical considerations}
+
+Both backoff and interpolation use all orders.  You don't want to store all
+$V^n + V^{n-1} + \cdots + V + 1$ distributions.
+
+Typically, people do not store probabilities unless the count of the
+n-gram is greater than some threshold $c(\cdot)<K$.  There can be
+different thresholds for different order n-grams and these are often
+referred to as ``cut-offs.''
+
+Not storing probabilities is sometimes referred to as pruning, using
+the tree analogy.  One can prune individual probabilities using a
+count threshold, as described above, or also using an
+information-theoretic criterion for determining if the higher-order
+probability is similar to the lower-order pruning.  This is often
+referred to as ``Stolcke pruning'' and is the entropy pruning option in the
+SRI LM toolkit.
+
+It is important to understand that pruning does not mean that these n-grams have zero probability, not that you back-off to the lower-order n-gram. Rather, multiple pruned n-grams are all represented with a single parameter depending on the lower-order n-gram ($\gamma(w_{i-2},w_{i-1})$).
+
+\clearpage
+
+
+{\bf Variable N-grams -- Distribution Pruning}
+
+One can also think of pruning whole branches or subtrees out of the tree,
+i.e. pruning at the distribution level (vs. not storing probabilities for 
+specific words in specific contexts).  
+
+For example, if $p_b = p(w|v_b)$
+and $p_{ab} = p(w|v_a,v_b)$, then prune the $p_{ab}$ branch if 
+$D(p_{ab}||p_b)<\epsilon$.  
+
+This results in a {\em variable n-gram,}
+or model that uses a variable-length history depending on the context, e.g.
+\begin{eqnarray*}
+p(w_1,\ldots , w_T) & = & p(w_1)p(w_2|w_1)p(w_3)p(w_4|w_2,w_3)p(w_5|w_2,w_3,w_4)\\
+ & & \cdots  p(w_T|w_{T-1})
+\end{eqnarray*}
+
+Note: as in any tree growing problem, it is better to grow big and prune back, rather than prune as you go.
+
+
+% This is the same branching tree figure as earlier in the notes.
+\vskip -0.2in
+\centerline{\psfig{figure=figs/ngram-tree.pdf,height=6in,angle=-90}}
+\vskip -0.1in
+
+
+\clearpage 
+
+\centerline{{\huge \bf Part III: Class LMs}}
+\vskip 0.1in
+
+Grouping words in classes can help improve probability estimates
+for less frequent words.
+
+Generally, people assume that words are deterministically associated
+with classes (for simplicity).  Consider the trigram case, for example:
+{\Large
+\begin{eqnarray*}
+p(w_1, w_2, \ldots , w_T) & = & p(w_1,c_1,w_2, c_2, \ldots , w_T, c_T)\\
+ & = &  \prod_{i=1}^T p(w_i,c_i|w_{i-2},c_{i-2},w_{i-1},c_{i-1})\\
+ & = &  \prod_{i=1}^T p(w_i|w_{i-2},c_{i-2},w_{i-1},c_{i-1},c_i)p(c_i|w_{i-2},c_{i-2},w_{i-1},c_{i-1})\\
+ & \approx &  \prod_{i=1}^T p_t(w_i|c_i)p_s(c_i|c_{i-2},c_{i-1})
+\end{eqnarray*}
+}
+The last line corresponds to the simplest version, which represents
+sequence behavior ($p_s(\cdot)$, $C^3$ parameters) in terms of classes only and
+content/topic behavior ($p_t(\cdot)$, $VC$ parameters) depending on only 
+the current class. Compare $C^3+VC$ to $V^3$ parameters for the trigram.
+
+\vskip 0.1in
+
+There are other options.  Using the Goodman notation of lower case for 
+words and upper case for classes, some options are:
+\begin{center}
+\begin{tabular}{ll}
+$p(z|Z)p(Z|X,Y)$ & above model, simplest case \\
+$p(z|y,Z)p(Z|X,y)$ & intermediate model, words only at bigram level \\
+$p(z|x,y,Z)p(Z|x,y)$ & no simplification, impacts back-off only \\
+\end{tabular}
+\end{center}
+
+\vskip 0.1in
+Note: the word prediction class ($Z$) and the sequence prediction classes ($X$ and $Y$, changed to ${\cal X}$ and ${\cal Y}$ for clarity) need not be the same partition of the word space, e.g.
+$$p(z|x,y) \approx p(z|Z)p(Z|{\cal X},{\cal Y})$$
+{\Large Example: ``a'' and ``an'' can follow the same words, but very few words can follow both ``a'' and ``an''.  Following Goodman '01, we'll call $Z$ a predictive class, and ${\cal X}$ a conditional class.}
+
+
+
+\clearpage
+Why use classes?  
+\begin{itemize}
+\item They provide the opportunity for another dimension
+of smoothing: rather than dropping $x$ from the history because it was
+not observed one can use the word class which may have been observed.
+\item They require fewer parameters; smaller LM takes up less memory,
+i.e. $C<V$ generally implies $C^3<<V^3$.
+\end{itemize}
+
+How do you get the classes?
+\begin{itemize}
+\item By knowledge (part-of-speech or hand-specified semantic classes)
+\item Automatic clustering to maximize likelihood (min perplexity)
+\begin{itemize}
+\item hierarchical (e.g. agglomerative: iterative merging of words and clusters, Brown et al. '92, in standard toolkits)
+\item partitioning (iterative reassignment)
+\end{itemize}
+\end{itemize}
+
+{\sl
+(Aside: hierarchical clustering gives a representation that can be interpreted as a bit encoding of words, which can be used as a numeric or feature representation of words (Jelinek 1997).)}
+
+\vskip 0.2in
+
+To do clustering, you need an objective:  min perplexity  $\Longrightarrow$ max likelihood of:
+$$\prod_i P(w_i|W_{i-1}) \quad \mbox{and} \quad \prod_i P(w_{i-1}|{\cal W}_i)$$
+
+
+\clearpage
+
+Empirical observations: 
+\begin{itemize}
+\item With sufficient data, automatic clusters work better than POS (since you can easily increase the number), but smoothing is needed.
+\item It is often useful to put the most frequent words in their own class, which can reduce the difference between automatic and POS classes.
+\item In constrained domains, hand-defined semantic classes are useful.
+\end{itemize}
+
+
+\vskip 0.2in
+
+The disadvantage of class LMs is that they are less powerful, so class LMs
+almost always give higher perplexity than word LMs, except in cases
+where training resources are small.  However, even if the class LM is less
+powerful, it can be useful in combination with the trigram:
+$$\hat p(w_i|w_{i-2},w_{i-1}) = (1-\lambda) p_{tri}(w_i|w_{i-2},w_{i-1}) + \lambda[p(w_i|c_i) p(c_i|c_{i-2},c_{i-1})] $$
+
+\clearpage
+
+\centerline{{\huge \bf Part IV: Cache LMs}}
+\vskip 0.2in
+
+The basic idea of a cache LM is to interpolate a static LM estimated
+from a large amount of data with a dynamic LM estimated from recently
+observed words in the document/speech being processed:
+$$ p(w_i|h_i) = \lambda p_{static}(w_i|w_{i-2},w_{i-1}) +
+(1-\lambda)p_{cache}(w_i|w_{i-1})$$ 
+Usually the cache does not contain much data, so it does not make
+sense to use a high-order n-gram, but bigrams are often useful.
+
+Practical issues:
+\begin{itemize}
+\item There are various options for restarting or windowing text for building
+the cache, and for temporally weighting data (higher weights for recent words)
+\item $\lambda$ is usually tuned by heuristically adjusting it to minimize error
+rate.
+\item Sometimes function words are not updated, but 
+this leads to trickier normalization.
+\end{itemize}
+
+\vskip 0.2in
+
+Early work (in speech recognition) was done by Kupiec, Kuhn \& DeMori
+and then popularized by IBM. Later work on trigger language modeling,
+using information-theoretic measures to find ``trigger'' words that
+indicate need for increasing probabilities of topically related words,
+showed that the most important triggers are ``self-triggers'', i.e. an
+instance of the word itself. This finding supports the use of cache LMs.
+
+\clearpage
+
+
+\centerline{{\huge \bf Part V: Mixture LMs}}
+\vskip 0.2in
+
+
+Mixtures are used for interpolating: 
+\begin{itemize}
+\item different types of LMs (e.g. word LM and class LM),
+\item cache LMs, 
+\item topic LMs,
+\item LMs trained on different sources,
+\end{itemize}
+and more.  The type of dependence of the mixture weights
+on the history depends on the application.
+
+
+\vskip 0.2in
+
+n-gram mixtures
+$$p(w_i|h_i) = \sum_{j=1}^m \lambda_j(h_i)p_j(w_i|h_i)$$
+$$p(w_1, \ldots , w_T) = \prod_{i=1}^T p(w_i|h_i) = \prod_{i=1}^T \left( \sum_j \lambda_j(h_i) p_j(w_i|h_i) \right)$$
+
+sentence-level mixtures
+$$p(w_1, \ldots , w_T) = \sum_{j=1}^m p_j(w_1, \ldots , w_T) 
+ = \sum_j \left[ \prod_{i=1}^T \lambda_j(h_i) p_j(w_i|h_i) \right]$$
+
+\underline{Interpretation:}\\
+Let a mixture component $p_j$ correspond to a topic.  In an
+n-gram-level mixture, the topic can change within a sentence, while it
+cannot in a sentence-level mixture. For some phenomena, one approach
+may be more realistic than the other, but the sentence-level mixture
+has a higher computational cost because the Markov assumption no
+longer holds.
+
+\clearpage
+
+Mixture LMs are usually designed by estimating:
+\begin{itemize}
+\item the component language models from different training sets or via
+unsupervised clustering, and 
+\item the mixture weights to max likelihood of a held-out data set. 
+\end{itemize}
+
+\vskip 0.3in
+
+{\sl Unsupervised (or semi-supervised) clustering via partitioning:}
+
+Given an initial representation of each cluster (e.g. n-gram LM)
+\begin{enumerate}
+\item Assign each sentence (or document) to the cluster with the highest probability
+\item Re-estimate cluster model
+\end{enumerate}
+
+
+\clearpage 
+
+\centerline{{\huge \bf Part VI: Empirical Observations (Goodman, 2001)}}
+\vskip 0.2in
+
+{\bf Some findings based on perplexity}
+\begin{itemize}
+\item Of all the above LM variations, the cache LM is by far the most useful
+\item Modified Kneser-Ney is always the best back-off alternative (see
+also Chen and Goodman, 1999) 
+\item Sentence-level mixtures have a lot of potential (depending on
+amount of training)
+\end{itemize}
+(see the paper for more)
+\vskip 0.3in
+
+{\bf Bad News}
+\begin{itemize}
+\item In ASR, cache LM often breaks due to word errors
+\item Specific smoothing method doesn't matter with lots of data and big cut-offs (to reduce size of LM) 
+\item Classes, sentence-level mixtures, etc. complicate applications such as ASR
+\end{itemize}
+
+{\bf Good News}
+\begin{itemize}
+\item ASR error rates are going down and you can use confidence to improve caching
+\item Computer memory is increasing so bigger LMs can be used, and data is not always large
+\item N-best rescoring allows for more complex LMs
+\end{itemize}
+
+{\bf Lesson:} The application and implementation details matter!
+
+
+\end{document} 
+

@@ -1,61 +1,9 @@
-Generating Sentences: {
-    "Unigram": [
-        "hooty is horse and </s>", 
-        "among . rods said in grin story d of clap but people revenge of till folks the king <s> and", 
-        "story look carriage and enough loud best sea-horses <s> he big hid out he nothing watched . . . everybody", 
-        "a . was she dead sickroom be wakened dark pacifist it ready fair happened young leaked of your you <s>", 
-        "did he . <s> we englishman again it been tears filial had minute mr. baby i as there jonas moved"
-    ], 
-    "Bigram": [
-        "i do you to consider of mind he will be thirty-eight st. gingolf to his eyes shone </s>", 
-        "-lrb- suiting the only whine of it s march with tall lady rosalind . </s>", 
-        "during the awkward rather distinguished himself . </s>", 
-        "the baron you the maiden i am satisfied at present in the smiling into the two years and the country", 
-        "bowser the time should be a little knitters . </s>"
-    ], 
-    "Trigram": [
-        "<s> i ve gone and i should like to be asleep and had forgotten to wind yarn wash the cups", 
-        "<s> like all kindred spirits just as well as everyone else despaired i never did . </s>", 
-        "<s> not those which hallow your bridal-night </s>", 
-        "<s> i profess not to be an end so why should we wish to see eden . </s>", 
-        "<s> into bowser s little kingdom of iolchos he found himself in a voice from the wall and so tired that"
-        ]
-    }
-
-Perplexity:{
-    Unigram Sentences:
-        1) hooty is horse and </s>
-        {"unigram": 5333.107106402083, "bigram": 3784.812165962918, "trigram": 10.195312898128853}
-        2) among . rods said in grin story d of clap but people revenge of till folks the king <s> and
-        {"unigram": 23283.054837542946, "bigram": 7112.811305399344, "trigram": 69.96027027651323}
-        3) story look carriage and enough loud best sea-horses <s> he big hid out he nothing watched . . . everybody
-        {"unigram": 46394.36554867338, "bigram": 12352.50062766935, "trigram": 59.5885142307485}
-        4) a . was she dead sickroom be wakened dark pacifist it ready fair happened young leaked of your you <s>
-        {"unigram": 36207.386509839715, "bigram": 80815.03273691135, "trigram": 75.33373895042543}
-        5) did he . <s> we englishman again it been tears filial had minute mr. baby i as there jonas moved
-        {"unigram": 23094.32238132257, "bigram": 3587.8371797013524, "trigram": 604.0893914364534}
-
-    Bigram Sentences:
-        1) i do you to consider of mind he will be thirty-eight st. gingolf to his eyes shone </s>
-        {"unigram": 24357.150649566578, "bigram": 567.3035939081819, "trigram": 668.6648083646114}
-        2) -lrb- suiting the only whine of it s march with tall lady rosalind . </s>
-        {"unigram": 29039.93105373994, "bigram": 478.49872978817285, "trigram": 2.5635260820766685}
-        3) during the awkward rather distinguished himself . </s>
-        {"unigram": 24130.423445526438, "bigram": 218.39705455514843, "trigram": 2.718281828459045}
-        4) the baron you the maiden i am satisfied at present in the smiling into the two years and the country
-        {"unigram": 21376.295472051697, "bigram": 789.3837337085405, "trigram": 818.7666242269268}
-        5) bowser the time should be a little knitters . </s>
-        {"unigram": 8416.534763592905, "bigram": 143.23438851526436, "trigram": 33.84704188485245}
-    
-    Trigram Sentences:
-        1) <s> i ve gone and i should like to be asleep and had forgotten to wind yarn wash the cups
-        {"unigram": 18826.551758823225, "bigram": 560.8722040080677, "trigram": 60.58563899999275}
-        2) <s> like all kindred spirits just as well as everyone else despaired i never did . </s>
-        {"unigram": 15037.418107634316, "bigram": 600.0830242383831, "trigram": 15.915389870199066}
-        3) <s> not those which hallow your bridal-night </s>
-        {"unigram": 66055.0351661188, "bigram": 2477.235156865963, "trigram": 13.400765795428114}
-        4) <s> i profess not to be an end so why should we wish to see eden . </s>
-        {"unigram": 10041.831632946967, "bigram": 479.2218362049645, "trigram": 56.480558131177666}
-        5) <s> into bowser s little kingdom of iolchos he found himself in a voice from the wall and so tired that
-        {"unigram": 8137.531908700515, "bigram": 913.9920669749432, "trigram": 35.42749292783235}
-}
+Unigram Sentences:
+story look carriage and enough
+{"unigram": 33339.84516773012, "bigram": 5545.430255772659, "trigram": 10.195312898128853}
+Bigram Sentences:
+during the awkward rather distinguished
+{"unigram": 222198.21795044933, "bigram": 2326.66347317813, "trigram": 10.195312898128853}
+Trigram Sentences:
+<s> like all kindred spirits
+{"unigram": 25060.718676789522, "bigram": 7839.698636892489, "trigram": 28.05794039287475}
