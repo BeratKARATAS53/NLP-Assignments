@@ -21,8 +21,8 @@ Following technologies are planned to be used in this assignments:
 
 ### Installation
 
-Download Pyhton: [Python][pythonDown]
-Download Jupyter Notebook: [Jupyter Notebook][jupyterDown]
+* Download Pyhton: [Python][pythonDown]
+* Download Jupyter Notebook: [Jupyter Notebook][jupyterDown]
 
    [dill]: <https://github.com/BeratKARATAS53/Pet-Adoption-Project>
    [vscode]: <https://code.visualstudio.com/>
