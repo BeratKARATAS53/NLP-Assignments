@@ -10,6 +10,7 @@ Assignment 1 - Implement Basic NGram Models and Generate Sentences.
 
 ### Datasets
 * [Assignment 1 - Facebook Children Stories][ass1]
+* Assignment 2 - CoNLL 2003 NER
 
 ### Tech
 
