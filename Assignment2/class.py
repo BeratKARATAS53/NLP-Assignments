@@ -28,6 +28,8 @@ class HMM():
 
     def HMM(self, dataset):
             
+        each_tag_counts = {}
+        
         transition_tags = []
         transition_tag_counts = {}
         transition_prob = {}
@@ -44,11 +46,10 @@ class HMM():
                 if bigram != '</s>':
                     tags_bigram.append(bigram)
             transition_tags.append(tags_bigram)
-        # print(transition_tags)
         
-        out_arr = np.asarray(transition_tags)
+        array_to_npArr = np.asarray(transition_tags)
 
-        for tags in out_arr:
+        for tags in array_to_npArr:
             each_counts = dict(Counter(tags))
         
             for k,v in each_counts.items():
@@ -56,13 +57,58 @@ class HMM():
                     transition_tag_counts[k] = v
                 else:
                     transition_tag_counts[k] += 1
-        print(transition_tag_counts)
+        # print("transition_tag_counts\n",transition_tag_counts)
         
+        for tags in array_to_npArr:
+            for tag in tags:
+                tag = tag.split()
+                each_counts = dict(Counter(tag))
+            
+                for k,v in each_counts.items():
+                    if k not in each_tag_counts:
+                        each_tag_counts[k] = v
+                    else:
+                        each_tag_counts[k] += 1
+        # print("each_tag_counts\n",each_tag_counts)
         
+        for k,v in transition_tag_counts.items():
+            first_tag = k.split()
+            first_tag = first_tag[0]
+            first_tag_count = each_tag_counts[first_tag]
+            trans_prob = transition_tag_counts[k] / each_tag_counts[first_tag]
+            transition_prob[k] = trans_prob
         
+        # print("transition_prob\n",transition_prob)
         
+        emissionTag_Word_dict = {}
+        emission_word_counts = {}
         emission_prob = {}
         
+        for sentence in dataset:
+            tags = sentence[0].split()
+            words = sentence[1].split()
+            
+            for i in range(len(tags)):
+                if tags[i] not in emissionTag_Word_dict:
+                    arr = [words[i]]
+                    emissionTag_Word_dict[tags[i]] = arr
+            else:
+                emissionTag_Word_dict[tags[i]].append(words[i])
+                    
+        # print(emissionTag_Word_dict)
+        
+        for k1,v1 in emissionTag_Word_dict.items():
+            array_to_npArr = np.asarray(v1)
+            each_counts = dict(Counter(array_to_npArr))
+            
+            for k2,v2 in each_counts.items():
+                key = k1 + " " + k2
+                if key not in emission_word_counts:
+                    emission_word_counts[key] = v2
+                else:
+                    emission_word_counts[key] += 1
+                        
+        print(emission_word_counts)
         
 
     def viterbi(self):
