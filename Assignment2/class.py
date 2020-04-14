@@ -1,6 +1,7 @@
 import math
 import sys
 import re
+
 import numpy as np
 from collections import Counter
 
@@ -17,7 +18,7 @@ class HMM():
             if (len(line.strip()) == 0 and words[-1] == '.') or not line.strip():
                 l = ' '.join([label for label in labels if len(label) > 0])
                 w = ' '.join([word for word in words if len(word) > 0])
-                lines.append((l, w))
+                lines.append((l.lower(), w.lower()))
                 words = []
                 labels = []
             words.append(word)
@@ -38,7 +39,6 @@ class HMM():
             tags = sentence[0].split()
             
             tags.insert(0, '<s>')
-            tags.append('</s>')
             
             tags_bigram = []        
             for number in range(0, len(tags)): 
@@ -76,7 +76,7 @@ class HMM():
             first_tag = first_tag[0]
             first_tag_count = each_tag_counts[first_tag]
             trans_prob = transition_tag_counts[k] / each_tag_counts[first_tag]
-            transition_prob[k] = trans_prob
+            transition_prob[k] = math.log2(trans_prob)
         
         # print("transition_prob\n",transition_prob)
         
@@ -102,13 +102,27 @@ class HMM():
             each_counts = dict(Counter(array_to_npArr))
             
             for k2,v2 in each_counts.items():
-                key = k1 + " " + k2
-                if key not in emission_word_counts:
-                    emission_word_counts[key] = v2
+                if k1 not in emission_word_counts:
+                    word_dict = {k2: v2}
+                    emission_word_counts[k1] = word_dict
                 else:
-                    emission_word_counts[key] += 1
+                    if k2 not in emission_word_counts[k1]:
+                        emission_word_counts[k1].update({k2: v2})
+                    else:
+                        emission_word_counts[k1][k2] += 1
                         
-        print(emission_word_counts)
+        # print(emission_word_counts)
+        
+        for k1,v1 in emission_word_counts.items():
+            total_corpus = sum(emission_word_counts[k1].values())
+            
+            em_prob = {}
+            for k2,v2 in v1.items():
+                emis_prob = v2 / total_corpus
+                em_prob[k2] = math.log2(emis_prob)
+                
+            emission_prob[k1] = em_prob 
+        print(emission_prob)
         
 
     def viterbi(self):
