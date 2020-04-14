@@ -2,134 +2,138 @@ import math
 import sys
 import re
 
-def dataset(input_file):
-    """Read a BIO data!"""
-    rf = open(input_file, 'r')
-    lines = []; words = []; labels = []
-    for line in rf:
-        word = line.strip().split(' ')[0]
-        label = line.strip().split(' ')[-1]
-        # here we dont do "DOCSTART" check
-        if (len(line.strip()) == 0 and words[-1] == '.') or not line.strip():
-            l = ' '.join([label for label in labels if len(label) > 0])
-            w = ' '.join([word for word in words if len(word) > 0])
-            lines.append((l, w))
-            words = []
-            labels = []
-        words.append(word)
-        labels.append(label)
+import numpy as np
+from collections import Counter
 
-    return lines
+class HMM():
+    
+    def dataset(self, input_file):
+        """Read a BIO data!"""
+        rf = open(input_file, 'r')
+        lines = []; words = []; labels = []
+        for line in rf:
+            word = line.strip().split(' ')[0]
+            label = line.strip().split(' ')[-1]
+            # here we dont do "DOCSTART" check
+            if (len(line.strip()) == 0 and words[-1] == '.') or not line.strip():
+                l = ' '.join([label for label in labels if len(label) > 0])
+                w = ' '.join([word for word in words if len(word) > 0])
+                lines.append((l.lower(), w.lower()))
+                words = []
+                labels = []
+            words.append(word)
+            labels.append(label)
+
+        return lines
 
 
-def HMM(dataset):
-    
-    all_tags = [] # Tüm Tag'ler
-    all_tags_counts = {} # Tüm Tag'lerin Countları
-    all_tags_prob = {} # Tüm Tag'lerin Olasılıkları
-    
-    for sentence in dataset:
-        tags = sentence[0].split()
-        for tag in tags:
-            all_tags.append(tag)
-    
-    for tag in all_tags:
-        if tag not in all_tags_counts:
-            all_tags_counts[tag] = all_tags.count(tag)
-    
-    for tag_c in all_tags_counts:
-        if tag_c not in all_tags_prob:
-            all_tags_prob[tag_c] = all_tags_counts[tag_c] / len(all_tags)
+    def HMM(self, dataset):
             
-    # all_words = [] # Tüm Kelimeler
-    # all_words_counts = {} # Tüm Kelimelerin Countları
-    # all_words_prob = {} # Tüm Kelimelerin Olasılıkları
-    
-    # for sentence in dataset:
-    #     words = sentence[1].split()
-    #     for word in words:
-    #         word = word.lower()
-    #         all_words.append(word)
-    
-    # for word in all_words:
-    #     if word not in all_words_counts:
-    #         all_words_counts[word] = all_words.count(word)
-    
-    # for word_c in all_words_counts:
-    #     if word_c not in all_words_prob:
-    #         all_words_prob[word_c] = all_words_counts[word_c] / len(all_words)
-    # print(all_words_prob)
-    
-    initial_tags = [] # Başlangıç Tag'leri
-    initial_tag_counts = {} # Başlangıç Tag'lerinin Countları
-    initial_prob = {} # Başlangıç Tag'lerinin Olasılıkları
-    
-    for sentence in dataset:
-        start_tag = sentence[0].split()[0]
-        initial_tags.append(start_tag)
-    
-    for i_tag in initial_tags:
-        if i_tag not in initial_tag_counts:
-            initial_tag_counts[i_tag] = initial_tags.count(i_tag)
-    print(initial_tag_counts)
-    
-    for i_tag_c in initial_tag_counts:
-        if i_tag_c not in initial_prob:
-            initial_prob[i_tag_c] = initial_tag_counts[i_tag_c] / len(initial_tags)
-    print(initial_prob)
-    
+        each_tag_counts = {}
         
-    transition_tags = []
-    transition_tag_counts = {}
-    transition_prob = {}
-    for sentence in dataset:
-        tags = sentence[0].split()
+        transition_tags = []
+        transition_tag_counts = {}
+        transition_prob = {}
         
-        tags.insert(0, '<s>')
-        tags.append('</s>')
+        for sentence in dataset:
+            tags = sentence[0].split()
+            
+            tags.insert(0, '<s>')
+            
+            tags_bigram = []        
+            for number in range(0, len(tags)): 
+                bigram = ' '.join(tags[number:number + 2])
+                if bigram != '</s>':
+                    tags_bigram.append(bigram)
+            transition_tags.append(tags_bigram)
         
-        tags_bigram = []        
-        for number in range(0, len(tags)): 
-            bigram = ' '.join(tags[number:number + 2])
-            if bigram != '</s>':
-                tags_bigram.append(bigram)
-        transition_tags.append(tags_bigram)
-    # print(transition_tags)
-    
-    # for tags in transition_tags:
-    #     for i in range(len(sentence) - 1):
-    #         temp = (sentence[i], sentence[i+1])
-    #         listToString = ' '.join([str(elem) for elem in temp])
-    #         if listToString in data:
-    #             if listToString not in transition_tag_counts:
-    #                 transition_tag_counts[listToString] = 1
-    #             else:
-    #                 transition_tag_counts[listToString] += 1
-    
-    # # Calculating the probabilities of each word according to the bigram and write to the bigramProbs dictionary.
-    # for k,v in transition_tag_counts.items():
-    #     first_word = k.split()
-    #     first_word = first_word[0]
-    #     first_word_count = all_tags_counts[first_word]
-    #     bi_probs = transition_tag_counts[k] / all_tags_counts[first_word]
-    #     bigramProbs[k] = bi_probs
-    
-    
-    
-    emission_prob = {}
-    
-    
-    return 1
+        array_to_npArr = np.asarray(transition_tags)
+
+        for tags in array_to_npArr:
+            each_counts = dict(Counter(tags))
+        
+            for k,v in each_counts.items():
+                if k not in transition_tag_counts:
+                    transition_tag_counts[k] = v
+                else:
+                    transition_tag_counts[k] += 1
+        # print("transition_tag_counts\n",transition_tag_counts)
+        
+        for tags in array_to_npArr:
+            for tag in tags:
+                tag = tag.split()
+                each_counts = dict(Counter(tag))
+            
+                for k,v in each_counts.items():
+                    if k not in each_tag_counts:
+                        each_tag_counts[k] = v
+                    else:
+                        each_tag_counts[k] += 1
+        # print("each_tag_counts\n",each_tag_counts)
+        
+        for k,v in transition_tag_counts.items():
+            first_tag = k.split()
+            first_tag = first_tag[0]
+            first_tag_count = each_tag_counts[first_tag]
+            trans_prob = transition_tag_counts[k] / each_tag_counts[first_tag]
+            transition_prob[k] = math.log2(trans_prob)
+        
+        # print("transition_prob\n",transition_prob)
+        
+        emissionTag_Word_dict = {}
+        emission_word_counts = {}
+        emission_prob = {}
+        
+        for sentence in dataset:
+            tags = sentence[0].split()
+            words = sentence[1].split()
+            
+            for i in range(len(tags)):
+                if tags[i] not in emissionTag_Word_dict:
+                    arr = [words[i]]
+                    emissionTag_Word_dict[tags[i]] = arr
+            else:
+                emissionTag_Word_dict[tags[i]].append(words[i])
+                    
+        # print(emissionTag_Word_dict)
+        
+        for k1,v1 in emissionTag_Word_dict.items():
+            array_to_npArr = np.asarray(v1)
+            each_counts = dict(Counter(array_to_npArr))
+            
+            for k2,v2 in each_counts.items():
+                if k1 not in emission_word_counts:
+                    word_dict = {k2: v2}
+                    emission_word_counts[k1] = word_dict
+                else:
+                    if k2 not in emission_word_counts[k1]:
+                        emission_word_counts[k1].update({k2: v2})
+                    else:
+                        emission_word_counts[k1][k2] += 1
+                        
+        # print(emission_word_counts)
+        
+        for k1,v1 in emission_word_counts.items():
+            total_corpus = sum(emission_word_counts[k1].values())
+            
+            em_prob = {}
+            for k2,v2 in v1.items():
+                emis_prob = v2 / total_corpus
+                em_prob[k2] = math.log2(emis_prob)
+                
+            emission_prob[k1] = em_prob 
+        print(emission_prob)
+        
+
+    def viterbi(self):
+        return 1
 
 
-def viterbi():
-    return 1
+    def accuracy(self):
+        return 1
 
+classHMM = HMM()
 
-def accuracy():
-    return 1
+dataset = classHMM.dataset("./Assignment2/dataset/train.txt")
 
-
-dataset = dataset("./Assignment2/train.txt")
-# print(dataset)
-HMM(dataset)
+classHMM.HMM(dataset)
