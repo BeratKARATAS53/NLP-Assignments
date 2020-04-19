@@ -25,11 +25,13 @@ class HMM():
         I read the file line by line.
         I split each line according to the empty character and 
         I get the elements of the resulting array in the first and last index. 
-        The ones in the first index represent the tags, and the ones in the last index represent the sentence.
+        The ones in the first index represent the tags, 
+        and the ones in the last index represent the sentence.
         And finally, I add the resulting train and test sequences to the class variable called dataset.
         
         >>> dataset array:
-            [('O O B-LOC O O O O B-PER O O O O', 'SOCCER - JAPAN GET LUCKY WIN , CHINA IN SURPRISE DEFEAT .'), ('B-PER I-PER', 'Nadim Ladki'),...]
+            [('O O B-LOC O O O O B-PER O O O O', 'SOCCER - JAPAN GET LUCKY WIN , CHINA IN SURPRISE DEFEAT .'), 
+             ('B-PER I-PER', 'Nadim Ladki'),...]
         
     """
     def dataset(self, input_folder):
@@ -78,31 +80,40 @@ class HMM():
 
     **Arg. Example**:
     
-        >>> dataset = [('B-ORG O B-MISC O O O B-MISC O O', 'EU rejects German call to boycott British lamb .'), ('B-PER I-PER', 'Peter Blackburn'), ...]
+        >>> dataset = [('B-ORG O B-MISC O O O B-MISC O O', 'EU rejects German call to boycott British lamb .'), 
+                       ('B-PER I-PER', 'Peter Blackburn'), ...]
         
     **Explanation**:
     
         >>> Note: Örnek değerleri gerçeği yansıtmamaktadır. Sadece örnek olması açısından yazılmıştır.
         
-        Step.1 - Create A Transition Probability: (I don't calculate initial probability. Because I added start (<s>) token to my transition_tags.)
+        Step.1 - Create A Transition Probability:
+        (I don't calculate initial probability. Because I added start (<s>) token to my transition_tags.)
             I have 4 structures:
-              * each_tag_counts; I calculate the count of each tag in the train dataset and add the result to this array.
+              * each_tag_counts; I calculate the count of each tag in the train dataset 
+                and add the result to this array.
                 >>> Example: {'B-ORG':185, 'O':35007, 'B-MISC':87, ...}
-              * transition_tags; I reprocess each tag in a sentence according to the bigram model and add the result to this array.
+              * transition_tags; I reprocess each tag in a sentence according to the bigram model 
+                and add the result to this array.
                 >>> Example: [['<s> B-ORG', 'B-ORG O', 'O B-MISC', 'B-MISC </s>'], ...]
-              * transition_tag_counts; I calculate the counts of each pair in transition_tags and add the result to this dictionary.
+              * transition_tag_counts; I calculate the counts of each pair in transition_tags 
+                and add the result to this dictionary.
                 >>> Example: {'<s> B-ORG':1250, 'B-ORG O':245, 'O B-MISC':56, ...}
-              * transition_prob; Finally, I calculate the probabilities of each pair in transition_tags and add the result to this dictionary.
+              * transition_prob; Finally, I calculate the probabilities of each pair in transition_tags
+                and add the result to this dictionary.
                 >>> Example: {'<s> B-ORG':0.55, 'B-ORG O':0.04, 'O B-MISC':0.0023, ...}
             
         Step.2 - Create A Emission Probability:
             I have 3 structures:
-              * emissionTag_Word_dict; I classify each word in a sentence according to the tag to which it is linked and add the result to this dictionary.
+              * emissionTag_Word_dict; I classify each word in a sentence 
+                according to the tag to which it is linked and add the result to this dictionary.
                 >>> Example: {'B-ORG': ['EPR', 'EU', 'European', ...], 'B-LOC': ['BRUSSELS', 'Germany', ...], ...}
-              * emission_word_counts; The value part of each tag in emissionTag_Word_dict is the word list with that tag. 
+              * emission_word_counts; The value part of each tag in emissionTag_Word_dict 
+                is the word list with that tag. 
                 Here I calculate the counts of the words in this list and add the result to this dictionary.
                 >>> Example: {'B-ORG': {'EPR':3, 'EU':5, 'European':2, ...}, 'B-LOC': {'BRUSSELS':12, 'Germany':3, ...}, ...}
-              * emission_prob; I calculate the probability of the words in emission_word_counts structure and add the result to this dictionary.
+              * emission_prob; I calculate the probability of the words in emission_word_counts structure 
+                and add the result to this dictionary.
                 >>> Example: {'B-ORG': {'EPR':0.2, 'EU':0.4, 'European':0.14, ...}, 'B-LOC': {'BRUSSELS':0.4, 'Germany':0.1, ...}, ...}
              
     """
@@ -225,14 +236,16 @@ class HMM():
     
         >>> transition_prob = {'<s> B-ORG':0.55, 'B-ORG O':0.04, 'O B-MISC':0.0023, ...}
         >>> emission_prob = {'B-ORG': {'EPR':0.2, 'EU':0.4, 'European':0.14, ...}, 'B-LOC': {'BRUSSELS':0.4, 'Germany':0.1, ...}, ...}
-        >>> test_data = [('B-ORG O B-MISC O O O B-MISC O O', 'EU rejects German call to boycott British lamb .'), ('B-PER I-PER', 'Peter Blackburn'), ...]
+        >>> test_data = [('B-ORG O B-MISC O O O B-MISC O O', 'EU rejects German call to boycott British lamb .'), 
+                         ('B-PER I-PER', 'Peter Blackburn'), ...]
         
     **Explanation**:
     
         ... Note: Sample values ​​do not reflect reality. It is written only as an example.
         
         Step.1 - Changing Probability Dictionaries to Probability Matrix:
-            To calculate the Viterbi algorithm, I have converted dictionaries with transition and emission probes into a 2D matrix.
+            To calculate the Viterbi algorithm, I have converted dictionaries 
+            with transition and emission probes into a 2D matrix.
             >>> transition_prob >> transition_matrix: column; first tags, row; second tags
                    <s> | B-LOC |   O  | B-ORG | ......
             B-LOC [0.2 | 0.11  | 0.25 | 0.    | ......]
@@ -264,20 +277,25 @@ class HMM():
             ....  [.... | ........| .......| .......| ......]
             
             
-            First of all, I calculate emission prob for each sentence from test_sentences and add them in the emission_matrix, as I mentioned above.
+            First of all, I calculate emission prob for each sentence from test_sentences 
+            and add them in the emission_matrix, as I mentioned above.
             Next, I fill each cell in the viterbi_matrix with the formula in the below:
             >>> Formül: viterbi_matrix[k][i-1] * transition_matrix[j][k+1] * emission_matrix[j][i-1]
               * viterbi_matrix[k][i-1]: Probability of come the previous tag in Viterbi matrix.
                 In the example above, the possibility of the B-LOC tag coming in the previous step for step-2: 0.025 
-              * transition_matrix[j][k+1]: The probability that the tag in the cell that it is in comes after the tag I chose in viterbi_matrix[k][i-1].
+              * transition_matrix[j][k+1]: The probability that the tag in the cell 
+              that it is in comes after the tag I chose in viterbi_matrix[k][i-1].
                 In the example above, the probability that comes B-ORG after the O tag: 0.12
-              * emission_matrix[j][i-1]: The probability that the word in the step it is in is inside the tag in the cell where it is located.
+              * emission_matrix[j][i-1]: The probability that the word in the step it is in 
+              is inside the tag in the cell where it is located.
                 In the example above, the possibility of the word 'The' in the B-LOC tag: 0.5
                 
-            In this way, I fill each cell with the total number of tags, take the highest of them and write them to viterbi_matrix[j][i].
+            In this way, I fill each cell with the total number of tags, take the highest of them
+            and write them to viterbi_matrix[j][i].
             >>> viterbi_matrix[j][i] = max(each_cell)
             
-            Then I add the tag corresponding to the highest value in each column of viterbi_matrix, which I filled with these calculations, to the predict_tags list.
+            Then I add the tag corresponding to the highest value in each column of viterbi_matrix,
+            which I filled with these calculations, to the predict_tags list.
             
             Now I have guessed tags. Finally, I send this to the accuracy () function and measure the accuracy of the model.
              
@@ -286,7 +304,8 @@ class HMM():
         # test_data list has 2 index. First one is tags and the other one is sentences.
         test_sentences_tags = [sentences[0] for sentences in test_data]
         
-        # The keys of the emission probe correspond to the tags in my data set. I will do the placement according to these tags while creating the Matrix.
+        # The keys of the emission probe correspond to the tags in my data set. 
+        # I will do the placement according to these tags while creating the Matrix.
         transition_tags = list(emission_prob.keys())
         
         transition_tags.sort()
@@ -303,7 +322,8 @@ class HMM():
                     transition_matrix[j][i] = transition_prob[tag]
                     
         
-        # The keys of the emission probe correspond to the tags in my data set. I will do the placement according to these tags while creating the Matrix.
+        # The keys of the emission probe correspond to the tags in my data set. 
+        # I will do the placement according to these tags while creating the Matrix.
         emission_tags = list(emission_prob.keys())
         emission_tags.sort()
 
@@ -323,8 +343,10 @@ class HMM():
                     j = emission_tags.index(tag)
                     
                     """ In this section;
-                        If the word from the test sentence is in my train data set, I draw the probability from emission_prob.
-                        If that word is not in my train data set, I calculating smooth probability it.
+                        If the word from the test sentence is in my train data set, 
+                        I draw the probability from emission_prob.
+                        If that word is not in my train data set, 
+                        I calculating smooth probability it.
                     """
                     if word in emission_prob[tag]:
                         emission_matrix[j][i] = emission_prob[tag][word]
@@ -336,7 +358,8 @@ class HMM():
             tag_path_array = [] # The predicted tag list of that sentence in the Viterbi matrix.
             
             viterbi_matrix = np.zeros((row_count,column_count+2))
-            """ The first column of the Viterbi matrix is ​​an initial probability. I'm writing this to the Matrix. """
+            """ The first column of the Viterbi matrix is ​​an initial probability. 
+            I'm writing this to the Matrix. """
             for tag in emission_tags:
                 i = emission_tags.index(tag)
                 viterbi_matrix[i][0] = transition_matrix[i][0]
@@ -348,7 +371,8 @@ class HMM():
                   'j' rows,
                   'each_cell' represents each cell.
                                   
-                  The process 'viterbi_matrix [j] [i] = max (each_cell)' selects the highest value found in each cell and prints it in that cell.
+                  The process 'viterbi_matrix [j] [i] = max (each_cell)' selects the highest value
+                   found in each cell and prints it in that cell.
             """
             for word in sentences:
                 i = sentences.index(word)
@@ -396,7 +420,8 @@ class HMM():
 
             predict_tags.append(tag_path_array)
         
-        """ I send both the tags I read from the test dataset and the tags I guess to the accuracy function. """
+        """ I send both the tags I read from the test dataset 
+        and the tags I guess to the accuracy function. """
         self.accuracy(test_sentences_tags, predict_tags)
             
             
@@ -419,9 +444,11 @@ class HMM():
         
     **Explanation**:
     
-        My function parameters are 2-dimensional arrays. In this respect, I processing each 1-dimensional tag array in the for a loop.
+        My function parameters are 2-dimensional arrays. In this respect, 
+        I processing each 1-dimensional tag array in the for a loop.
         I convert the arrays in my hand to np-array for easier operation.
-        With the formula below, I assign the number of matching tags in the binary "test_sentences_tags [i], predict_tags [i]" to the total_match_tag variable.
+        With the formula below, I assign the number of matching tags 
+        in the binary "test_sentences_tags [i], predict_tags [i]" to the total_match_tag variable.
         >>> total_match_tag += np.sum(test_sentences_tags[i] == predict_tags[i])
         
         And by dividing the total number of matching tags by the total number of tags, I calculate the accuracy.
