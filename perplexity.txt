@@ -1,9 +1,0 @@
-Unigram Sentences:
-story look carriage and enough
-{"unigram": 33339.84516773012, "bigram": 5545.430255772659, "trigram": 10.195312898128853}
-Bigram Sentences:
-during the awkward rather distinguished
-{"unigram": 222198.21795044933, "bigram": 2326.66347317813, "trigram": 10.195312898128853}
-Trigram Sentences:
-<s> like all kindred spirits
-{"unigram": 25060.718676789522, "bigram": 7839.698636892489, "trigram": 28.05794039287475}
