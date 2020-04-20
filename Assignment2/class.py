@@ -140,16 +140,18 @@ class HMM():
                         
         # print(emission_word_counts)
         
+        counter = sum(map(Counter, emission_word_counts.values()), Counter())
+        count_dict = dict(counter)
+        self.V_size += len(count_dict.keys())
+        
         for k1,v1 in emission_word_counts.items():
-            total_corpus = sum(emission_word_counts[k1].values())
             
             em_prob = {}
             for k2,v2 in v1.items():
-                emis_prob = v2 / total_corpus
+                emis_prob = v2 / count_dict[k2]
                 em_prob[k2] = emis_prob
                 
             emission_prob[k1] = em_prob
-            self.V_size += len(v1)
             
         # print(emission_prob)
         
@@ -164,7 +166,7 @@ class HMM():
         
         transition_tags.sort()
         transition_tags.insert(0,"<s>")
-        print("Unique Transition Tags: ",transition_tags)
+        transition_tags[1], transition_tags[-1] = transition_tags[-1], transition_tags[1]
 
         transition_matrix_len = len(transition_tags)
 
@@ -176,12 +178,13 @@ class HMM():
                 tag = uniqe_tag + " " + transition_tags[j+1]
                 if tag in transition_prob:
                     transition_matrix[j][i] = transition_prob[tag]
+                    
         
         # print("Transition:\n",transition_tags,"\n",transition_matrix)
         
         emission_tags = list(emission_prob.keys())
         emission_tags.sort()
-        print("Unique Emission Tags: ",emission_tags)
+        emission_tags[0], emission_tags[-1] = emission_tags[-1], emission_tags[0]
 
         row_count = len(emission_tags)
         
@@ -193,8 +196,8 @@ class HMM():
             
             column_count = len(sentences)
             emission_matrix = np.zeros((row_count,column_count))
+            i = 0
             for word in sentences:
-                i = sentences.index(word)
                 for tag in emission_tags:
                     j = emission_tags.index(tag)
                     if word in emission_prob[tag]:
@@ -202,15 +205,13 @@ class HMM():
                     else:
                         emission_prob[tag][word] = 1 / (len(sentences) + self.V_size)
                         emission_matrix[j][i] = emission_prob[tag][word]
+                i += 1
                                     
             # print(sentences, "\n", emission_matrix)
             
             tag_path_array = []
             # Start State
             viterbi_matrix = np.zeros((row_count,column_count+2))
-            for tag in emission_tags:
-                i = emission_tags.index(tag)
-                viterbi_matrix[i][0] = transition_matrix[i][0]
             
             tag_path_array.append(emission_tags[np.argmax(viterbi_matrix[:,0])])
             
@@ -220,14 +221,12 @@ class HMM():
                 if i == 0:
                     for tag in emission_tags:
                         j = emission_tags.index(tag)
-                        if emission_matrix[j][i] != 0.0:
-                            if transition_matrix[j][i] != 0.0:
                                         
-                                # print("viterbi: ",viterbi_matrix[j][i],
-                                #         ", emission: ",emission_matrix[j][i])
+                        # print("viterbi: ",viterbi_matrix[j][i],
+                        #         ", emission: ",emission_matrix[j][i])
                                                 
-                                result = transition_matrix[j][i] * emission_matrix[j][i] # (?)
-                                # print("result: ",result)
+                        result = transition_matrix[j][i] * emission_matrix[j][i] # (?)
+                        # print("result: ",result)
                                         
                         viterbi_matrix[j][i] = result
                 else:
@@ -236,18 +235,16 @@ class HMM():
                         each_cell = np.zeros(len(emission_tags))
                         if emission_matrix[j][i-1] != 0.0:
                             for k in range(len(emission_tags)):
-                                if viterbi_matrix[k][i-1] != 0.0:
-                                    if transition_matrix[j][k+1] != 0.0:
                                             
-                                        # print("Transition: ",transition_tags[k+1],"-",transition_tags[j+1],
-                                        #         ", Emission: ",emission_tags[j],"-",word,
-                                        #         ", viterbi: ",viterbi_matrix[k][i-1],
-                                        #         ", transition: ",transition_matrix[j][k+1],
-                                        #         ", emission: ",emission_matrix[j][i-1])
+                                # print("Transition: ",transition_tags[k+1],"-",transition_tags[j+1],
+                                #         ", Emission: ",emission_tags[j],"-",word,
+                                #         ", viterbi: ",viterbi_matrix[k][i-1],
+                                #         ", transition: ",transition_matrix[j][k+1],
+                                #         ", emission: ",emission_matrix[j][i-1])
                                             
-                                        result = viterbi_matrix[k][i-1] * transition_matrix[j][k+1] * emission_matrix[j][i]
-                                        # print("result: ",result)
-                                        each_cell[k] = result
+                                result = viterbi_matrix[k][i-1] * transition_matrix[j][k+1] * emission_matrix[j][i]
+                                # print("result: ",result)
+                                each_cell[k] = result
                         viterbi_matrix[j][i] = max(each_cell)
                     
             end_result = np.zeros(len(emission_tags))
@@ -264,8 +261,6 @@ class HMM():
             
             for i in range(len(viterbi_matrix[0])-1):
                 argmax = np.argmax(viterbi_matrix[:,i])
-                if argmax == 0:
-                    argmax = 8
                 tag_path_array.append(emission_tags[argmax])
             
             viterbi_matrix[len(viterbi_matrix)-1][len(viterbi_matrix[0])-1] = max(end_result)
@@ -292,19 +287,17 @@ class HMM():
             predict_tags[i] = np.asarray(predict_tags[i])
             predict_tags[i] = predict_tags[i][1:-1]
             
-            # for x in range(len(predict_tags[i])):
-            #     file.write(str(index)+","+predict_tags[i][x]+"\n")
-            #     index += 1
+            for x in range(len(predict_tags[i])):
+                file.write(str(index)+","+predict_tags[i][x]+"\n")
+                index += 1
                 
-            testSent = ' '.join([str(elem) for elem in test_sentences_tags[i]])
-            predict = ' '.join([str(elem) for elem in predict_tags[i]])
-            file.write(testSent+"\n"+predict+"\n----------\n")
+            # testSent = ' '.join([str(elem) for elem in test_sentences_tags[i]])
+            # predict = ' '.join([str(elem) for elem in predict_tags[i]])
+            # file.write(testSent+"\n"+predict+"\n----------\n")
             
             total_match_tag += np.sum(test_sentences_tags[i] == predict_tags[i])
             total_tags += len(test_sentences_tags[i])
                     
-        print("Match:",total_match_tag)
-        print("Total:",total_tags)
         print("Accuracy:",total_match_tag/total_tags)
 
 classHMM = HMM()
