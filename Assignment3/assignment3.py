@@ -11,36 +11,39 @@ from collections import Counter
 class CYK():
     
     def __init__(self):
-        # rules_dict is list that use for generate a random sentences. It's mixed of cfg_rules and vocabulary lists.
+        # rules_dict is a list that uses to generating random sentences. It's mixed with cfg_rules and vocabulary lists.
         self.rules_dict = defaultdict(list)
     
     """
     **Arguments**:
     
-        :param input_folder: File path to read Train and Test datasets
-        :type input_folder: A string
+        :param folder_path: File path to read cfg_rules
+        :type folder_path: A string
         
     **Arg. Example**:
     
-        >>> input_folder = ./Assignment3/cfg.gr
+        >>> folder_path = ./Assignment3/cfg.gr
         
     **Explanation**:
     
         This function have 3 steps.
         
         >>> Step-1:
-            Dosyadan ilk kelimesi '#' ve 'ROOT' olmayan satırları okuyorum ve 'lines' array'ine yazıyorum.
+            I read the first word from the file the lines 
+            that are not '#' and 'ROOT' and write them in the 'lines' array.
         
         >>> Step-2:
-            Elimdeki 'lines' array'inde hem cfg rules'lar hem de vocabulary'ler var. CYKParser() fonksiyonunda kullanmam için bunları ayırmam lazım.
-            O yüzden her bir satırı bir for döngüsünde kuralların right-hand-side (rhs) kısmına bakarak ayırma işlemini gerçekleştiriyorum. Eğer rhs kısmı küçük harften oluşuyorsa
-            o satır vocabulary'yi temil eder, o yüzden o satırı 'vocabulary' dict'ine ekliyorum. Diğer durumda ise 'rules' dict'ine ekliyorum.
+            I have both of rules and vocabulary in my 'lines' array. To use it in the CYKParser() function,
+            I need to separate them.
+            So I perform the separation of each line in a loop by looking at the right-hand-side (RHS) part of the rules. 
+            If the RHS part is lowercase, that line represents the vocabulary, so I add that line to the 'vocabulary' dict. 
+            In the other case, I add it to the 'rules' dict.
             
         >>> Step-3:
-            randsentence() fonksiyonunda daha kolay kullanabilmek için rules ve vocabulary dictionary'lerini rules_dict adındaki defaultdict türündeki yapıya birleştiriyorum.
-            Neden daha kolay olduğunu randsentence() fonksiyonunda bahsedeceğim.
+            I combine rules and vocabulary dictionaries into the defaultdict type named rules_dict 
+            for easier use in the randsentence() function. I will talk about why it is easier in the randsentence() function.
             
-        Sonuç olarak elimde 3 tane dict var:
+        As a result, I have 3 dict:
             ... rules = {       'VP': ['Verb NP'], 
                                 'Noun': ['Adj Noun'], 
                                 'S': ['NP VP'], 
@@ -91,7 +94,7 @@ class CYK():
                         vocabulary[lhs] = [word]
                     else:
                         vocabulary[lhs].append(word)
-                else:
+                else: # rules
                     if lhs not in rules:
                         rules[lhs] = [rhs]
                     else:
@@ -101,7 +104,7 @@ class CYK():
         self.cfg_rules = rules
         self.cfg_vocabs = vocabulary
         
-        """ Step-3: Mixed rules and vocabulary dicts to rules_dict. """
+        """ Step-3: I combine rules and vocabulary dict and write to rules_dict. """
         for key, value in rules.items():
             for each in value:
                 self.rules_dict[key].append(tuple(each.split()))
@@ -114,43 +117,47 @@ class CYK():
     """
     **Arguments**:
 
-        :param symbol: non-terminal variable such as 'S', 'NP', 'Verb', ...
-        :type symbol: str
+        :param symbol: The non-terminals variable such as 'S', 'NP', 'Verb', ...
+        :type symbol: A string
         
-        :return sentence: A random generate sentence
-        :type sentence: str
+        :return sentence: A randomly generate sentence
+        :type sentence: A string
         
     **Explanation**:
     
-        randsentence() fonksiyonunu recursive olarak tanımladım. 
-        Öncelikle başlangıç sembol'ü olan 'S' değerini alıp rules_dict'den o non_terminal değerinin sahip olduğu rastgele bir terminal değeri seçiyorum.
-        Sonrasında bu terminal değerinin içindeki her bir kelimeyi kontrol ediyorum;
-            ... Eğer bu kelime bir non-terminal değer ise bu değeri tekrardan fonksiyona gönderiyorum.
-            ... Eğer non-terminal değil ise bu değerin bir kelime olduğunu anlıyorum ve bunu 'sentence' string'ine ekliyorum.
+        I have defined the randsentence() function is recursive.
+        First of all, I take the initial symbol 'S' and select a random terminal value from rules_dict.
+        Then I check each word in this terminal value;
+        ... If this word is a non-terminal value, I send this value back to the function.
+        ... I understand that this value is a word if it is terminal, and I add it to the string 'sentence'.
         
-        !!  Note: Normalde satır 140'daki if bloğu ile cümledeki kelime sayısının 6'yı geçmemesini sağlamam gerekiyordu. Ama bu durum bazen sağlanmıyor.
-            Sebebi ise fonksiyon her recursive olarak çağırıldığında sentence değerinin sıfırlanması. 
-            Buna rağmen kaldırmadım, çünkü oluşturduğum 10 cümleden 1-2 tanesi 7 ve üzeri kelime sayısına sahip oluyor.
-            Eğer kaldırırsam 10 cümleden sadece 1-2 tanesi istediğim 6 ve altı kelime sayısına sahip oluyor.
-            Bu yüzden o kısım %100 verimde çalışmasa da istediğime yakın sonuçlar alıyorum.
+        !   Note: Normally the if block in line 154th should ensure that the number of words in the sentence does not exceed 6. 
+            But sometimes it doesn't work.
+            The reason is that every time the function is called recursive, the sentence value is reset.
+            Despite this, I did not remove it, because 1-2 of the 20 sentences 
+            I have created have the number of words of 6 and above.
+            If I remove it, only 1-2 out of 20 sentences have the number of 6 and six words I want.
+            So even though that part doesn't work at 100% efficiency, I get results close to what I want.
         
-        !!! Dosya okunurken bahsettiğim ve neden elimdeki 'rules' ve 'vocabulary' dict'lerini birleştirdiğimin cevabı randsentence() fonksiyonunun yapısını recursive olarak tanımlamamdır.
-            Yani fonksiyonu recursive olarak çağırdığım her adımda gelen symbol değerinin rules mu yoksa vocabulary mi olduğunu kontrol etmek yerine bu 2 dict'i birleştirmek daha kolay işlem yapmamı sağladı.
-    
+        !!  The answer to the question about why I am combining the 'rules' and 'vocabulary' dict 
+            I have mentioned while reading the file is that I define the structure of the randsentence () function is recursive.
+            So, instead of checking whether the symbol value that comes in every step 
+            I call the function recursive is rules or vocabulary, combining these 2 dict has made it easier for me to do the operation.
+        
     """
     def randsentence(self, symbol):
         sentence = ''
             
-        # Step-1: Selected the first rule from 'S' key 
+        # Step-1: The first rule was selected according to the 'S' key
         rand_rule = random.choice(self.rules_dict[symbol])
 
         for each_rule in rand_rule:
-            # Cümledeki kelime sayısı 3'den büyük 6'dan küçük olsun koşulu ama %90 verimle çalışmıyor.
-            if (len(sentence.split()) > 3) and (len(sentence.split()) < 6):
+            # The number of words in the sentence is less than 6, but it does work with 90% efficiency.
+            if (len(sentence.split()) > 6):
                 break
-            elif each_rule in self.rules_dict: # Eğer seçtiğim kelime bir non-terminal değer ise fonksiyona geri gönder.
+            elif each_rule in self.rules_dict: # If the word I selected is a non-terminal value, send it back to the function.
                 sentence += self.randsentence(each_rule)
-            else: # Eğer seçtiğim kelime bir terminal değer ise sentence'a ekleme yap.
+            else: # If the word I selected is a terminal value, add to the sentence.
                 sentence += each_rule + ' '
         
         return sentence
@@ -161,7 +168,7 @@ class CYK():
         :param generate_sentence: A Random Generated Sentence
         :type generate_sentence: str
         
-        :return cyk_matrix: O cümlenin cyk matrix'i
+        :return cyk_matrix: The cyk matrix of that sentence
         :return cyk_matrix: 2d np array
         
     **Arg. Example**:
@@ -176,16 +183,19 @@ class CYK():
                 
     **Explanation**:
 
-        >>> Step-1:  ------ [line 252]
-            CYK parser algoritmasına başlamadan önce elimdeki cümlenin her bir kelimesin hangi türe ait olduğunu bulmam lazım. Bu kısımda vocabulary dict'inden yararlanıyorum.
-            Ve sonucu sentence_type array'ine yazıyorum.
+        >>> Step-1:  ------ [line 279]
+            Before starting the CYK parser algorithm, 
+            I have to find out which type of each word my sentence belongs to. In this part, 
+            I use vocabulary dict.
+            And I write the result to the sentence_type array.
         
-        >>> Step-2:   ------ [line 267-274]
-            CYK matrix'imin ilk satırını cümledeki kelimelerimin türleriyle dolduruyorum. İlk adımı ayırmış olmamın sebebi diğer adımlarda bir formül uygulayacak olmam.
+        >>> Step-2:   ------ [line 294-300]
+            I fill the first line of my CYK matrix with the types of my words in the sentence. 
+            The reason I have separated the first step is that I will apply a formula in other steps.
             
         >>> Other Steps:
-            Şimdi diğer adımlarda aşağıdaki formülü uyguluyorum:
-            ... Formula: Xrow,column = (Xm,column)(Xrow-(m+1),column+m+1) ---- m: satır sayısı aralığı [0-row], row: satır sayısı [0-count(sentence)], column: sütun sayısı [0-count(sentence)]
+            Now in other steps, I apply the following formula:
+            ... Formula: Xrow,column = (Xm,column)(Xrow-(m+1),column+m+1) ---- m: row count spacing [0-row], row: row count [0-count(sentence)], column: colum count [0-count(sentence)]
 
             ... Formula Example:
                 >>> First Row: X1,0 = (X0,0)(X0,1) ---------------------    m: 0, row: 1, column: 0
@@ -194,7 +204,7 @@ class CYK():
                 .
                 .
         
-    **CYK Parser Vizualization**:
+    **CYK Parser Visualization**:
 
     ... sentence: the mouse kissed a mouse 
         >>> row=0 | 'the', 'mouse', 'kissed', 'a', 'mouse'
@@ -273,12 +283,9 @@ class CYK():
         for i in range(len(sentence_type)):
             sentence_type[i] = sentence_type[i][0]
             
-        # Started filling the cyk_matrix
-        generated_sentence = generated_sentence.split()
-        length = len(generated_sentence)
+        # cyk_matrix filling started
+        length = len(sentence_type)
         cyk_matrix = np.empty((length, length), dtype=object)
-        
-        sentence_type_dict = {}
         
         for row in range(length):
             index = length - row
@@ -288,7 +295,6 @@ class CYK():
                     t = ' '.join([tag for tag in word if len(tag) > 0])
                     
                     cyk_matrix[row][column] = sentence_type[column]
-                    sentence_type_dict[t] = sentence_type[column]
             else: # Other Steps
                 for column in range(index):
                     word = generated_sentence[column:row+column+1]
@@ -309,33 +315,28 @@ class CYK():
                         
                     cyk_matrix[row][column] = self.result_cell
         
+        if 'S' in cyk_matrix[len(cyk_matrix)-1][0]:
+            print(generated_sentence, "- It's in this language")
+        else:
+            print(generated_sentence, "- It's not in this language!")
+        
         return cyk_matrix
 
 
 classCYK = CYK()
 
-classCYK.rules("./Assignment3/cfg.gr")
+classCYK.rules("./Assignment3/cfg.gr") # Read File 
 
 file_output = open("output.txt","w")
 
 random_sentences = []
-for i in range(10):
+for i in range(20): # Generate Random 20 Sentences
     sentence = classCYK.randsentence('S')
     file_output.write(sentence+"\n")
     random_sentences.append(sentence)
 
 file_output.close()
 
-cyk_parser = []
-for rand_sentence in random_sentences:
-    cyk_parser.append(classCYK.CYKParser(rand_sentence))
-
-i = 0
-for parse in cyk_parser:
-    print(random_sentences[i])
-    i += 1
-    print(parse)
-    if 'S' in parse[len(parse)-1][0]:
-        print("It's in this language")
-    else:
-        print("It's not in this language!")
+for rand_sentence in random_sentences: # Generate CYK Parser for each sentence
+    classCYK.CYKParser(rand_sentence)
+    
