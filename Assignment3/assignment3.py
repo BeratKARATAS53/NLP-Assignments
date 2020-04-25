@@ -11,39 +11,54 @@ from collections import Counter
 class CYK():
     
     def __init__(self):
-        self.rules_dict = defaultdict(list)
+        self.rules_dict = defaultdict(list) # rules_dict is list that use for generate a random sentences. It's mixed of cfg_rules and vocabulary lists.
+    
+    """
+    
+    """
+    def rules(self, folder_path):
+        cfg_rules = open(folder_path, 'r')
+        lines = []
+        for line in cfg_rules:
+            word = line.strip().split('\t')
+            each_char = word[0].split(' ')
+            if each_char[0] != '#':
+                if each_char[0] != 'ROOT':
+                    if line.strip():
+                        lines.append(word)
         
-    mix_rules_and_vocab = {     'S': ['NP VP'], 
-                                'VP': ['Verb NP'], 
-                                'NP': ['Det Noun | Pronoun | NP PP'],
-                                'PP': ['Prep NP'], 
-                                'Noun': ['Adj Noun'],
-                                'Verb': ['ate | wanted | kissed | washed | pickled | is | prefer | like | need | want',],
-                                'Det': ['the | a | every | this | that'],
-                                'Noun': ['president | sandwich | pickle | mouse | floor'],
-                                'Adj': ['fine | delicious | beautiful | old'],
-                                'Prep': ['with | on | under | in | to | from'],
-                                'Pronoun': ['me | I | you | it'] 
-                            }
-    
-    cfg_rules = {   'S': ['NP VP'], 
-                    'VP': ['Verb NP'], 
-                    'NP': ['Det Noun', 'Pronoun', 'NP PP'],
-                    'PP': ['Prep NP'], 
-                    'Noun': ['Adj Noun'] }
-    
-    vocabulary = {  'Verb': ['ate', 'wanted', 'kissed', 'washed', 'pickled', 'is', 'prefer', 'like', 'need', 'want',],
-                    'Det': ['the', 'a', 'every', 'this', 'that'],
-                    'Noun': ['president', 'sandwich', 'pickle', 'mouse', 'floor'],
-                    'Adj': ['fine', 'delicious', 'beautiful', 'old'],
-                    'Prep': ['with', 'on', 'under', 'in', 'to', 'from'],
-                    'Pronoun': ['me', 'I', 'you', 'it'] }
-    
-    def cfg_rules_change(self, cfg_rules):
-        for k,v in cfg_rules.items():
-            rhs = v[0].split("|")
-            for each in rhs:
-                self.rules_dict[k].append(tuple(each.split()))
+        rules = {}
+        vocabulary = {}
+        for line in lines:
+            lhs = line[0].strip()
+            rhs = line[1]
+            for word in rhs.split():
+                word = word.strip()
+                if word.islower(): # vocabulary
+                    if lhs not in vocabulary:
+                        vocabulary[lhs] = [word]
+                    else:
+                        vocabulary[lhs].append(word)
+                else:
+                    if lhs not in rules:
+                        rules[lhs] = [rhs]
+                    else:
+                        if rhs not in rules[lhs]:
+                            rules[lhs].append(rhs)
+                    
+        
+        self.cfg_rules = rules
+        self.cfg_vocabs = vocabulary
+        
+        for key, value in rules.items():
+            for each in value:
+                self.rules_dict[key].append(tuple(each.split()))
+            
+        for key, value in vocabulary.items():
+            for each in value:
+                self.rules_dict[key].append(tuple(each.split()))
+        
+        print(self.cfg_rules,"\n",self.cfg_vocabs,"\n",self.rules_dict)
     
     def randsentence(self, symbol, output_file):
         sentence = ''
@@ -115,7 +130,7 @@ class CYK():
     def CYKParser(self, generated_sentence):
         sentence_type = []
         for word in generated_sentence.split():
-            sentence_type.append([key for key, value in self.vocabulary.items() if word in value])
+            sentence_type.append([key for key, value in self.cfg_vocabs.items() if word in value])
         
         for i in range(len(sentence_type)):
             sentence_type[i] = sentence_type[i][0]
@@ -123,8 +138,6 @@ class CYK():
         generated_sentence = generated_sentence.split()
         length = len(generated_sentence)
         cyk_matrix = np.empty((length, length), dtype=object)
-        
-        print(generated_sentence)
         
         sentence_type_dict = {}
         
@@ -174,7 +187,7 @@ class CYK():
 
 classCYK = CYK()
 
-cfg_rules = classCYK.cfg_rules_change(classCYK.mix_rules_and_vocab)
+classCYK.rules("./Assignment3/cfg.gr")
 
 file_output = open("output.txt","w")
 
@@ -190,12 +203,12 @@ cyk_parser = []
 for rand_sentence in random_sentences:
     cyk_parser.append(classCYK.CYKParser(rand_sentence))
 
+i = 0
 for parse in cyk_parser:
+    print(random_sentences[i])
+    i += 1
     print(parse)
     if 'S' in parse[len(parse)-1][0]:
         print("It's in this language")
     else:
         print("It's not in this language!")
-
-
-    
