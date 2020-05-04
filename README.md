@@ -10,7 +10,7 @@ Assignment 1 - Implement Basic NGram Models and Generate Sentences.
 
 ### Datasets
 * [Assignment 1 - Facebook Children Stories][ass1]
-* Assignment 2 - CoNLL 2003 NER
+* [Assignment 2 - CoNLL 2003 NER][ass2]
 
 ### Tech
 
@@ -34,3 +34,4 @@ Following technologies are planned to be used in this assignments:
    [github]: <https://github.com/>
    
    [ass1]: <https://venturebeat.com/2016/02/18/facebook-releases-1-6gb-data-set-of-childrens-stories-for-training-its-ai/>
+   [ass2]: <https://github.com/davidsbatista/NER-datasets/tree/master/CONLL2003>
