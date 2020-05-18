@@ -11,8 +11,7 @@ from collections import Counter
 class CYK():
     
     def __init__(self):
-        self.rules_dict = defaultdict(list) # rules_dict is list that use for generate a random sentences. It's mixed of cfg_rules and vocabulary lists.
-    
+        self.rules_dict = defaultdict(list)
     
     def rules(self, folder_path):
         cfg_rules = open(folder_path, 'r')
@@ -44,20 +43,24 @@ class CYK():
                         if rhs not in rules[lhs]:
                             rules[lhs].append(rhs)
                     
+        cfg_rules_vocab_set = {}
         
         self.cfg_rules = rules
         self.cfg_vocabs = vocabulary
         
         for key, value in rules.items():
-            for each in value:
-                self.rules_dict[key].append(tuple(each.split()))
+            cfg_rules_vocab_set[key] = [' | '.join(value[0:len(value)])]
             
         for key, value in vocabulary.items():
-            for each in value:
-                self.rules_dict[key].append(tuple(each.split()))
+            cfg_rules_vocab_set[key] = [' | '.join(value[0:len(value)])]
         
-        print(self.cfg_rules,"\n",self.cfg_vocabs,"\n",self.rules_dict)
-    
+        return cfg_rules_vocab_set
+ 
+    def cfg_rules_change(self, cfg_rules):
+        for k,v in cfg_rules.items():
+            rhs = v[0].split("|")
+            for each in rhs:
+                self.rules_dict[k].append(tuple(each.split()))
     
     def randsentence(self, symbol, output_file):
         sentence = ''
@@ -76,7 +79,56 @@ class CYK():
         
         return sentence
         
-        
+    """
+    Example:
+    >>> row=1 | 'sandwich', 'like', 'fine', 'beautiful', 'mouse'
+    >>> row=2 | 'sandwich like', 'like fine', 'fine beautiful', 'beautiful mouse'
+    >>> row=3 | 'sandwich like fine', 'like fine beautiful', 'fine beautiful mouse'
+    >>> row=4 | 'sandwich like fine beautiful', 'like fine beautiful mouse'
+    >>> row=5 | 'sandwich like fine beautiful mouse'
+    
+    
+    CYK PARSER VISUALIZATION
+    'sandwich like fine beautiful mouse'
+    'Noun     Verb Adj  Adj       Noun'
+    
+    Step-1                                                  Step-2
+       _________                                                _________
+    5 |_________|______                                      5 |_________|______
+    4 |_________|______|______                               4 |_________|______|______
+    3 |_________|______|______|____________                  3 |_________|______|______|____________ 
+    2 |____X____|__X___|__X___|____Noun____|_________        2 |____X____|__X___|__X___|____Noun____|_________
+    1 |___Noun__|_Verb_|_Adj__|____Adj_____|__Noun___|       1 |___Noun__|_Verb_|_Adj__|____Adj_____|__Noun___|
+       sandwich   like   fine   beautiful     mouse             sandwich   like   fine   beautiful     mouse
+         
+     Step-3                                                  Step-4
+       _________                                                _________
+    5 |_________|______                                      5 |_________|______
+    4 |_________|______|______                               4 |____X____|__X___|______
+    3 |____X____|__X___|__X___|____________                  3 |____X____|__X___|__X___|____________
+    2 |____X____|__X___|__X___|____Noun____|_________        2 |____X____|__X___|__X___|____Noun____|_________
+    1 |___Noun__|_Verb_|_Adj__|____Adj_____|__Noun___|       1 |___Noun__|_Verb_|_Adj__|____Adj_____|__Noun___|
+       sandwich   like   fine   beautiful     mouse             sandwich   like   fine   beautiful     mouse
+         
+     Step-5
+       _________
+    5 |____X____|______
+    4 |____X____|__X___|______
+    3 |____X____|__X___|__X___|____________
+    2 |____X____|__X___|__X___|____Noun____|_________
+    1 |___Noun__|_Verb_|_Adj__|____Adj_____|__Noun___|
+       sandwich   like   fine   beautiful     mouse       
+         
+         
+    This is my cyk_matrix:
+    
+    0   Noun     Verb   Adj     Adj     Noun
+    1     x        x     x     Noun
+    2     x        x     x   
+    3     x        x  
+    4     x 
+          0        1     2       3       4   
+    """
     def CYKParser(self, generated_sentence):
         sentence_type = []
         for word in generated_sentence.split():
@@ -101,6 +153,17 @@ class CYK():
                     cyk_matrix[row][column] = sentence_type[column]
                     sentence_type_dict[t] = sentence_type[column]
             else:
+                """ Formula: Xrow,column = (row-1,column),(row-1,column+1) 
+                    >>> X1,0 = (X0,0),(X0,1)
+                    Formula: Xrow,column = (Xrow-2,column),(row-1,column+1) U (Xrow-1,column),(Xrow-2,column+1) 
+                    >>> X2,0 = (X1,0),(X0,1) U (X0,0),(X1,1)
+                    Formula: Xrow,column = (Xrow-3,column),(row-1,column+1) U (Xrow-2,column),(Xrow-2,column+2) U (Xrow-1,column),(Xrow-3,column+3) 
+                    >>> X3,0 = (X0,0),(X2,1) U (X1,0),(X1,2) U (X2,0),(X0,3)
+                    Formula: Xrow,column = (Xrow-4,column),(row-1,column+1) U (Xrow-3,column),(Xrow-2,column+2) 
+                                            U 
+                                           (Xrow-2,column),(Xrow-3,column+3) U (Xrow-1,column),(Xrow-4,column+3) 
+                    >>> X4,0 = (X0,0),(X3,1) U (X1,0),(X2,2) U (X2,0),(X1,3) U (X3,0),(X0,4)
+                """
                 for column in range(index):
                     word = generated_sentence[column:row+column+1]
                     t = ' '.join([tag for tag in word if len(tag) > 0])
@@ -126,7 +189,9 @@ class CYK():
 
 classCYK = CYK()
 
-classCYK.rules("./Assignment3/cfg.gr")
+rules_and_vocabs = classCYK.rules("./Assignment3/cfg.gr")
+
+classCYK.cfg_rules_change(rules_and_vocabs)
 
 file_output = open("output.txt","w")
 

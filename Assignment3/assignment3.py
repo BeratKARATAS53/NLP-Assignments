@@ -29,8 +29,7 @@ class CYK():
         This function have 3 steps.
         
         >>> Step-1:
-            I read the first word from the file the lines 
-            that are not '#' and 'ROOT' and write them in the 'lines' array.
+            I read the lines that are not the first-word '#' or 'ROOT' from the file and write them to the 'lines' array.
         
         >>> Step-2:
             I have both of rules and vocabulary in my 'lines' array. To use it in the CYKParser() function,
@@ -165,8 +164,8 @@ class CYK():
     """
     **Arguments**:
 
-        :param generate_sentence: A Random Generated Sentence
-        :type generate_sentence: str
+        :param generate_sentence: A randomly generate sentence
+        :type generate_sentence: A string
         
         :return cyk_matrix: The cyk matrix of that sentence
         :return cyk_matrix: 2d np array
@@ -275,7 +274,7 @@ class CYK():
         4    ['S'    None   None    None     None]
         ]
     """
-    def CYKParser(self, generated_sentence):
+    def CYKParser(self, generated_sentence, file_output):
         sentence_type = []
         for word in generated_sentence.split(): # Step-1
             sentence_type.append([key for key, value in self.cfg_vocabs.items() if word in value])
@@ -315,11 +314,13 @@ class CYK():
                         
                     cyk_matrix[row][column] = self.result_cell
         
+        # Writing the correct sentences to the console and writing all the sentences to the file
         if 'S' in cyk_matrix[len(cyk_matrix)-1][0]:
-            print(generated_sentence, "- It's in this language")
+            file_output.write(generated_sentence + "- It's in this language\n")
+            print(generated_sentence)
         else:
-            print(generated_sentence, "- It's not in this language!")
-        
+            file_output.write(generated_sentence + "- It's not in this language\n")
+        print(generated_sentence,"\n",cyk_matrix)
         return cyk_matrix
 
 
@@ -327,16 +328,15 @@ classCYK = CYK()
 
 classCYK.rules("./Assignment3/cfg.gr") # Read File 
 
-file_output = open("output.txt","w")
+file_output = open("output.txt","w") # Output File
 
 random_sentences = []
 for i in range(20): # Generate Random 20 Sentences
     sentence = classCYK.randsentence('S')
-    file_output.write(sentence+"\n")
     random_sentences.append(sentence)
 
-file_output.close()
-
 for rand_sentence in random_sentences: # Generate CYK Parser for each sentence
-    classCYK.CYKParser(rand_sentence)
+    classCYK.CYKParser(rand_sentence, file_output)
+    
+file_output.close()
     
