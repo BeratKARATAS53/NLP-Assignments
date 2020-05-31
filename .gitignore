@@ -1,2 +1,9 @@
+# Folders
 CBTest/
+glove.6B/
+dataset/
+
+# Files
 cbt_train.txt
+unim_poem.json
+cfg.gr
